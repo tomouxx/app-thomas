@@ -11,22 +11,30 @@ Cabinet est une application locale qui prépare les réunions, rédige leurs com
 | `docs/EXECUTANT.md` | exécutant | La boucle de travail du modèle local |
 | `REVIEW.md` | relecteur | Les deux phases de relecture et le verdict |
 | `docs/CHAINE.md` | Thomas | Comment brancher le modèle local, la passerelle et Claude Code |
+| `docs/REPRISE.md` | qui reprend le projet | Ce qui est installé, comment lancer, surveiller, arrêter et reprendre la chaîne |
 | `PLAN_VAGUES.md` | Thomas | Les quatre vagues, leurs prérequis et leurs essais manuels |
 | `DECISIONS.md` | Thomas, architecte | Décisions, hypothèses à vérifier, points ouverts |
 | `tickets/` | exécutant, relecteur | Un fichier par ticket et le tableau d'état |
 | `revues/GABARIT.md` | relecteur | Le modèle de rapport de vague |
-| `scripts/`, `chaine/`, `exemples/` | Thomas | Lancement de l'exécutant, passerelle, fichiers d'exemple |
+| `scripts/boucle_executant.py` | Thomas, relecteur | Lance une session de l'exécutant par ticket, relance `make check`, fait le commit |
+| `scripts/suivi.py` | Thomas | Page de suivi sur `http://127.0.0.1:8770/` |
+| `scripts/chaine.sh` | Thomas | Allume et arrête le serveur du modèle et la passerelle |
+| `scripts/verifier_garde.sh`, `scripts/executant.sh` | relecteur, Thomas | Contrôle des fichiers protégés, session interactive de diagnostic |
+| `chaine/`, `exemples/` | Thomas | Configuration de la passerelle, fichiers d'exemple |
 
 ## Pour commencer
 
 1. Crée un dépôt Git vide, mets-y ce kit et fais un premier commit sur `main`.
 2. Lis `DECISIONS.md` et conteste ce qui ne te convient pas avant de lancer quoi que ce soit.
-3. Suis `docs/CHAINE.md` pour allumer le serveur du modèle et la passerelle.
+3. Suis `docs/CHAINE.md` pour installer le modèle et la passerelle, puis lance `scripts/chaine.sh demarrer`.
 4. Crée la branche `vague-0`.
 5. Dans un terminal ordinaire, ouvre Claude Code et lance la phase A du relecteur (message dans `REVIEW.md`).
-6. Dans un autre terminal, lance `scripts/executant.sh` et donne le message de lancement de `docs/EXECUTANT.md`.
-7. Quand l'exécutant s'arrête, lance la phase B du relecteur.
-8. Lis `revues/vague-0.md`. C'est ce rapport qui dit si la chaîne tient.
+6. Lance `python3 scripts/suivi.py` et ouvre `http://127.0.0.1:8770/`.
+7. Lance `python3 scripts/boucle_executant.py 0`. Le script ouvre une session de l'exécutant par ticket.
+8. Quand la boucle s'arrête, lance la phase B du relecteur.
+9. Lis `revues/vague-0.md`. C'est ce rapport qui dit si la chaîne tient.
+
+`docs/REPRISE.md` détaille le lancement, l'arrêt et la reprise.
 
 ## Règle à ne pas oublier
 

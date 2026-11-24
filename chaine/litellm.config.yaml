@@ -1,8 +1,20 @@
 # Passerelle locale entre Claude Code et le serveur du modèle.
-# Exemple à valider en vague 0. Voir docs/CHAINE.md.
+# Lancée par scripts/chaine.sh, liée à 127.0.0.1:4000. Voir docs/CHAINE.md.
 model_list:
   - model_name: qwen-local
     litellm_params:
-      model: openai/qwen3.8-27b        # nom servi par ton serveur local
+      model: openai/qwen3.8-27b        # identifiant servi par LM Studio (scripts/chaine.sh)
       api_base: http://127.0.0.1:8080/v1
       api_key: local                    # valeur sans secret
+  # Claude Code appelle aussi un petit modèle pour des tâches annexes.
+  # Tout autre nom de modèle est servi par le même modèle local.
+  - model_name: "*"
+    litellm_params:
+      model: openai/qwen3.8-27b
+      api_base: http://127.0.0.1:8080/v1
+      api_key: local
+
+litellm_settings:
+  drop_params: true                     # ignore les paramètres que le serveur local ne connaît pas
+  telemetry: false
+  request_timeout: 900

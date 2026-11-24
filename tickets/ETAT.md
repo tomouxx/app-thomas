@@ -1,6 +1,6 @@
 # État des tickets
 
-Tenu par l'exécutant. États possibles : à faire, fait, bloqué. Les tickets se traitent dans l'ordre du tableau, vague par vague.
+Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqué. Les tickets se traitent dans l'ordre du tableau, vague par vague.
 
 | Ticket | Titre | Dépend de | État | Tentatives | Commit |
 | --- | --- | --- | --- | --- | --- |

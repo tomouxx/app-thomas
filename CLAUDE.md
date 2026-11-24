@@ -23,12 +23,13 @@ Le message de lancement de la session dit quel rôle tu tiens. S'il ne le dit pa
 | --- | --- | --- |
 | `src/`, `tests/unit/`, `tests/fixtures/`, `Makefile`, `pyproject.toml` | écrit | lit |
 | `tests/contrats/` | lit, ne modifie jamais | écrit |
-| `tickets/ETAT.md`, `tickets/notes/` | écrit | lit |
-| `tickets/V*.md`, `SPEC.md`, `REVIEW.md`, `CLAUDE.md`, `docs/` | lit, ne modifie jamais | lit |
+| `tickets/notes/` | écrit | lit |
+| `tickets/ETAT.md` | lit (tenu par `scripts/boucle_executant.py`) | lit |
+| `tickets/V*.md`, `SPEC.md`, `REVIEW.md`, `CLAUDE.md`, `docs/`, `scripts/`, `chaine/` | lit, ne modifie jamais | lit |
 | `revues/` | lit | écrit |
 
 ## Git
 
 - Une branche par vague, nommée `vague-N`.
-- Un commit par ticket, message `[V1-03] titre du ticket`.
+- Un commit par ticket, message `[V1-03] titre du ticket`. C'est `scripts/boucle_executant.py` qui le fait, après avoir relancé `make check`. Un second commit `[V1-etat]` note l'empreinte dans `tickets/ETAT.md`.
 - La branche `main` ne reçoit une vague qu'après un rapport au verdict GO et l'accord de Thomas.

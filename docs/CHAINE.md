@@ -1,25 +1,27 @@
 # Chaîne de développement
 
-Ce document décrit comment faire travailler ensemble le modèle local, Claude Code et le relecteur. Tout ce qui est écrit ici est une proposition à éprouver en vague 0. Rien n'a été testé par l'architecte.
+Ce document décrit comment faire travailler ensemble le modèle local, Claude Code et le relecteur. Tout ce qui est écrit ici est une proposition à éprouver en vague 0. L'architecte n'a rien testé. Ce que le relecteur a installé et réglé sur la machine de Thomas le 24.11.2026 est décrit dans `docs/REPRISE.md`.
 
 ## Les quatre rôles
 
 | Rôle | Qui | Où | Ce qu'il produit |
 | --- | --- | --- | --- |
 | Architecte | Claude, dans la conversation de cadrage | hors du dépôt | La spécification, les tickets, les arbitrages entre deux vagues |
-| Exécutant | Qwen3.8 27B, piloté par Claude Code | terminal 1, dépôt local | Le code et ses tests unitaires |
-| Relecteur | Un modèle Claude, dans Claude Code | terminal 2, dépôt local | Les tests de contrat et le rapport de vague |
+| Exécutant | Qwen3.8 27B, piloté par Claude Code, une session par ticket lancée par `scripts/boucle_executant.py` | dépôt local | Le code et ses tests unitaires |
+| Relecteur | Un modèle Claude, dans Claude Code | dépôt local | Les tests de contrat, le réglage de la chaîne et le rapport de vague |
 | Commanditaire | Thomas | partout | Les lancements, les décisions, l'accord final sur chaque vague |
 
 ## Ce qui tourne sur la machine
 
 Trois processus, tous liés à l'adresse de bouclage.
 
-1. Le serveur du modèle, compatible avec l'API de complétion de conversation d'OpenAI, sur le port 8080. La fiche de la conversion MLX 6 bits de Qwen3.8-27B donne la commande `mlx_lm.server --model <dépôt du modèle>`. D'autres serveurs conviennent (llama.cpp, LM Studio). Si tu veux la lecture d'images pour le ticket V3-03, choisis un serveur qui l'accepte et vérifie-le en vague 0.
-2. La passerelle LiteLLM sur le port 4000, lancée avec `litellm --config chaine/litellm.config.yaml --port 4000`. Elle traduit le format de messages attendu par Claude Code vers le serveur du modèle.
-3. Claude Code côté exécutant, lancé par `scripts/executant.sh`, qui fixe `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN` et `ANTHROPIC_MODEL` pour ce terminal seulement.
+1. Le serveur du modèle, compatible avec l'API de complétion de conversation d'OpenAI, sur le port 8080. Sur la machine de Thomas c'est LM Studio, qui sert la conversion MLX 6 bits de Qwen3.8-27B sous l'identifiant `qwen3.8-27b`. D'autres serveurs conviennent (`mlx_lm.server --model <dépôt du modèle>`, llama.cpp). Si tu veux la lecture d'images pour le ticket V3-03, choisis un serveur qui l'accepte et vérifie-le en vague 0.
+2. La passerelle LiteLLM sur le port 4000, lancée avec `litellm --config chaine/litellm.config.yaml --host 127.0.0.1 --port 4000`. Elle traduit le format de messages attendu par Claude Code vers le serveur du modèle.
+3. Claude Code côté exécutant, lancé par `scripts/boucle_executant.py`, une session non interactive par ticket. Le script fixe `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_MODEL` et un répertoire de réglages séparé pour ces sessions seulement.
 
-Le relecteur est une session Claude Code ordinaire, ouverte dans un autre terminal, sans ces variables.
+`scripts/chaine.sh demarrer` allume les deux premiers. `scripts/chaine.sh arreter` les éteint.
+
+Le relecteur est une session Claude Code ordinaire, sans ces variables.
 
 Réglages conseillés pour le serveur du modèle, à ajuster après mesure : fenêtre de contexte d'au moins 64 000 tokens (le harnais envoie un prompt système et des descriptions d'outils volumineux), 128 000 si le mode de raisonnement est actif.
 
@@ -33,7 +35,7 @@ Réglages conseillés pour le serveur du modèle, à ajuster après mesure : fen
 
 1. Thomas crée la branche `vague-N`.
 2. Relecteur, phase A. Il écrit les tests de contrat, fait son commit et pose l'étiquette `vague-N-tests`.
-3. Exécutant. Il traite les tickets un par un jusqu'à ce que tous soient « fait » ou « bloqué ».
+3. Exécutant. `scripts/boucle_executant.py N` ouvre une session par ticket, relance `make check` et fait le commit, jusqu'à ce que tous les tickets soient « fait » ou « bloqué ».
 4. Relecteur, phase B. Il vérifie, joue le scénario manuel et écrit `revues/vague-N.md`.
 5. Si le verdict est NO-GO, le relecteur écrit des tickets de correction et l'exécutant repart. Deux cycles au plus.
 6. Si le verdict est GO, Thomas relit le rapport, essaie lui-même le scénario manuel, fusionne dans `main` et pose l'étiquette `vague-N-ok`.
