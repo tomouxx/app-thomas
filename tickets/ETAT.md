@@ -4,7 +4,7 @@ Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqu
 
 | Ticket | Titre | Dépend de | État | Tentatives | Commit |
 | --- | --- | --- | --- | --- | --- |
-| V0-01 | Squelette du dépôt | aucun | à faire | 0 | |
+| V0-01 | Squelette du dépôt | aucun | fait | 1 |  |
 | V0-02 | Client du modèle local et garde de bouclage | V0-01 | à faire | 0 | |
 | V0-03 | Journal des exécutions d'agent | V0-01 | à faire | 0 | |
 | V1-01 | Configuration et répertoire de données | V0-02, V0-03 | à faire | 0 | |
