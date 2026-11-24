@@ -94,6 +94,9 @@ AUTORISES = [
     "Bash(git diff)",
     "Bash(git diff *)",
     "Bash(git log *)",
+    "Bash(git ls-files)",
+    "Bash(git ls-files *)",
+    "Bash(git check-ignore *)",
 ]
 INTERDITS = [
     "Edit(tests/contrats/**)",

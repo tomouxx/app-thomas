@@ -39,8 +39,10 @@ Rien de tout cela n'est dans le dépôt. Le dépôt ne contient que la configura
 scripts/chaine.sh demarrer                 # modèle sur 8080, passerelle sur 4000
 nohup python3 scripts/suivi.py >/dev/null 2>&1 &
 git switch vague-N                         # la phase A du relecteur doit être faite
-nohup python3 scripts/boucle_executant.py N > .chaine/boucle.log 2>&1 &
+nohup caffeinate -i python3 scripts/boucle_executant.py N >> .chaine/boucle.log 2>&1 &
 ```
+
+`caffeinate -i` empêche la mise en veille tant que la boucle tourne. Il ne protège ni d'un capot fermé ni d'un redémarrage : dans ces deux cas la boucle et les serveurs s'arrêtent, et il faut reprendre comme en section 6. Une vague dure plusieurs heures, mieux vaut brancher la machine au secteur.
 
 La boucle refuse de démarrer si un prérequis manque et dit lequel : `python3` en 3.12 ou plus, commande `claude`, identité git, branche `vague-N`, étiquette `vague-N-tests`, ports 8080 et 4000, arbre de travail propre.
 
@@ -83,6 +85,7 @@ Le relecteur lance la phase B avec `CABINET_CONTRATS=tous make check`, pour que 
 - Reprendre en repartant du dernier commit : `python3 scripts/boucle_executant.py N --nettoyer`. Les modifications vont dans `git stash`.
 - Rejouer un ticket bloqué après un réglage de la chaîne : `python3 scripts/boucle_executant.py --remettre ID`, commit de `tickets/ETAT.md`, puis relance de la boucle.
 - Arrêter les serveurs : `scripts/chaine.sh arreter`.
+- Après un redémarrage de la machine : `scripts/chaine.sh demarrer`, relance de `scripts/suivi.py`, puis reprise de la boucle avec `--nettoyer`. La session coupée ne compte pas comme une tentative si `tickets/ETAT.md` revient à son dernier commit, ce que fait `--nettoyer`.
 
 ## 7. Quand la chaîne coince
 
