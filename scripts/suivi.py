@@ -20,6 +20,7 @@ Usage : python3 scripts/suivi.py [--port 8770] [--racine CHEMIN]
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import datetime as dt
 import json
@@ -356,6 +357,31 @@ def construire_runs(evenements: list[dict], vivante: bool) -> list[dict]:
     return runs
 
 
+def compter_contrats() -> int:
+    """Nombre de tests de contrat, chaque cas paramétré compté à part."""
+    total = 0
+    for fichier in sorted((DEPOT.racine / "tests" / "contrats").glob("test_*.py")):
+        try:
+            arbre = ast.parse(fichier.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for noeud in arbre.body:
+            if not (isinstance(noeud, ast.FunctionDef) and noeud.name.startswith("test_")):
+                continue
+            cas = 1
+            for deco in noeud.decorator_list:
+                if (
+                    isinstance(deco, ast.Call)
+                    and isinstance(deco.func, ast.Attribute)
+                    and deco.func.attr == "parametrize"
+                    and len(deco.args) > 1
+                    and isinstance(deco.args[1], (ast.List, ast.Tuple))
+                ):
+                    cas *= len(deco.args[1].elts)
+            total += cas
+    return total
+
+
 def construire_etat() -> dict:
     evenements = lire_journal()
     tickets = lire_tickets()
@@ -407,6 +433,8 @@ def construire_etat() -> dict:
         "interventions_relecteur": sum(1 for e in interventions if e.get("auteur") != "Thomas"),
         "debut": debuts[0]["t"] if debuts else None,
         "derniere_verif": verifs[-1] if verifs else None,
+        "dernier_reglage": next((e for e in reversed(interventions) if e.get("auteur") != "Thomas"), None),
+        "nb_contrats": compter_contrats(),
         "dernier_commit": commits[-1] if commits else None,
     }
     for run in runs:
@@ -481,7 +509,7 @@ PAGE = r"""<!doctype html>
   --fond:#f6f4ee; --surface:#fffdf8; --surface-2:#f1ede3; --encre:#0f0e2b; --doux:#5e5c72;
   --trait:#e1dacb; --accent:#1f24e9; --accent-lave:#e8e9fd;
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
-  --bon:#0ca30c; --alerte:#c98500; --critique:#d03b3b; --gris:#9a98a8;
+  --bon:#0ca30c; --alerte:#c98500; --critique:#d03b3b; --gris:#9a98a8; --zc:#a8561a;
   --mono:ui-monospace,SFMono-Regular,Menlo,monospace; --corps:system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme:dark){
@@ -490,7 +518,7 @@ PAGE = r"""<!doctype html>
     --fond:#121219; --surface:#1a1a22; --surface-2:#23232d; --encre:#eceaf4; --doux:#a3a1b6;
     --trait:#33333f; --accent:#8b8ff7; --accent-lave:#26274a;
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-    --bon:#2fbf55; --alerte:#e0a42a; --critique:#e66767; --gris:#6f6d80;
+    --bon:#2fbf55; --alerte:#e0a42a; --critique:#e66767; --gris:#6f6d80; --zc:#e39a5c;
   }
 }
 :root[data-theme="dark"]{
@@ -498,7 +526,7 @@ PAGE = r"""<!doctype html>
   --fond:#121219; --surface:#1a1a22; --surface-2:#23232d; --encre:#eceaf4; --doux:#a3a1b6;
   --trait:#33333f; --accent:#8b8ff7; --accent-lave:#26274a;
   --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-  --bon:#2fbf55; --alerte:#e0a42a; --critique:#e66767; --gris:#6f6d80;
+  --bon:#2fbf55; --alerte:#e0a42a; --critique:#e66767; --gris:#6f6d80; --zc:#e39a5c;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--fond);color:var(--encre);font:14px/1.5 var(--corps)}
@@ -529,7 +557,20 @@ main{padding:18px 20px 40px;max-width:1500px;margin:0 auto}
 .direct{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
 @media (max-width:1100px){.direct{grid-template-columns:minmax(0,1fr)}}
 .defile{overflow-x:auto}
-#graphe{display:block;width:100%;min-width:820px;height:auto}
+#graphe{display:block;width:100%;min-width:900px;height:auto}
+.zone{stroke-width:1.3}
+.zone.zq{fill:color-mix(in srgb,var(--accent) 5%,var(--surface));stroke:color-mix(in srgb,var(--accent) 40%,var(--surface))}
+.zone.zc{fill:color-mix(in srgb,var(--zc) 9%,var(--surface));stroke:color-mix(in srgb,var(--zc) 50%,var(--surface))}
+.zone.zb{fill:var(--surface-2);stroke:var(--trait)}
+#graphe .zt{font:600 11.5px var(--mono);letter-spacing:.06em;fill:var(--doux)}
+#graphe .zq-t{fill:var(--accent)} #graphe .zc-t{fill:var(--zc)}
+#graphe .zs{font-size:11px;fill:var(--doux)}
+.noeud.claude rect.fond{stroke:color-mix(in srgb,var(--zc) 55%,var(--surface))}
+.noeud.claude .b{fill:var(--zc) !important}
+.legende i.z{border:1.3px solid}
+.legende i.zq{background:color-mix(in srgb,var(--accent) 10%,var(--surface));border-color:var(--accent)}
+.legende i.zc{background:color-mix(in srgb,var(--zc) 14%,var(--surface));border-color:var(--zc)}
+.legende i.zb{background:var(--surface-2);border-color:var(--gris)}
 #graphe text{fill:var(--encre);font-family:var(--corps)}
 .noeud rect.fond{fill:var(--surface);stroke:var(--trait);stroke-width:1.4;transition:stroke .3s,fill .3s}
 .noeud .t{font-size:13.5px;font-weight:600}
@@ -639,55 +680,70 @@ td.n{text-align:right} th.n{text-align:right}
   <div class="kpis" id="kpis"></div>
   <div class="direct">
     <div class="carte">
-      <div class="carte-t">Qui parle à qui <span class="aide">un point circule à chaque échange, les flèches bleues animées montrent le modèle au travail</span></div>
+      <div class="carte-t">Qui fait quoi <span class="aide">Qwen développe, la boucle vérifie à chaque session, Claude écrit les tests avant et juge la vague après. Un point circule à chaque échange.</span></div>
       <div class="defile">
-      <svg id="graphe" viewBox="0 0 1000 530" role="img" aria-label="Graphe de la chaîne : Thomas et le relecteur pilotent la boucle, la boucle lance l'exécutant, l'exécutant parle au modèle par la passerelle et agit sur le dépôt par quatre familles d'outils, la boucle vérifie puis fait le commit.">
+      <svg id="graphe" viewBox="0 0 1250 570" role="img" aria-label="Qui fait quoi. À gauche, la boucle, un script sans IA, lance les sessions, lance make check et fait les commits. Au centre, Qwen, en local, développe : il écrit le code par Claude Code, avec quatre familles d'outils, dans le dépôt. À droite, Claude, distant, contrôle : il a écrit les tests de contrat que make check exécute, il règle la chaîne et il relit tout le code à la fin de la vague.">
         <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="fleche" d="M0,0L10,5L0,10z"/></marker></defs>
+        <rect class="zone zb" x="20" y="112" width="232" height="420" rx="14"/>
+        <text class="zt" x="36" y="134">BOUCLE · VÉRIFIE</text><text class="zs" x="36" y="150">script, sans IA</text>
+        <rect class="zone zq" x="268" y="112" width="728" height="420" rx="14"/>
+        <text class="zt zq-t" x="284" y="134">QWEN · DÉVELOPPE</text><text class="zs" x="284" y="150">modèle local, sur ce Mac. Il écrit tout le code.</text>
+        <rect class="zone zc" x="1012" y="112" width="224" height="420" rx="14"/>
+        <text class="zt zc-t" x="1028" y="134">CLAUDE · CONTRÔLE</text><text class="zs" x="1028" y="150">distant, n'écrit aucun code</text>
         <g id="aretes">
-          <path class="arete" id="e-thomas-boucle" d="M135,80 C135,120 135,140 135,178" marker-end="url(#fl)"/>
-          <path class="arete" id="e-relecteur-boucle" d="M865,80 C860,130 330,105 232,192" marker-end="url(#fl)"/>
-          <path class="arete" id="e-boucle-exec" d="M232,206 L348,206" marker-end="url(#fl)"/>
-          <path class="arete" id="e-exec-boucle" d="M348,240 L232,240" marker-end="url(#fl)"/>
-          <path class="arete" id="e-exec-pass" d="M562,220 L598,220" marker-end="url(#fl)"/>
-          <path class="arete" id="e-pass-modele" d="M742,220 L778,220" marker-end="url(#fl)"/>
-          <path class="arete" id="e-exec-lecture" d="M400,262 C400,300 315,296 315,328" marker-end="url(#fl)"/>
-          <path class="arete" id="e-exec-recherche" d="M440,262 C440,300 460,296 460,328" marker-end="url(#fl)"/>
-          <path class="arete" id="e-exec-ecriture" d="M480,262 C480,300 605,296 605,328" marker-end="url(#fl)"/>
-          <path class="arete" id="e-exec-shell" d="M520,262 C520,300 750,296 750,328" marker-end="url(#fl)"/>
-          <path class="arete" id="e-lecture-depot" d="M315,386 C315,420 430,416 430,448" marker-end="url(#fl)"/>
-          <path class="arete" id="e-recherche-depot" d="M460,386 C460,420 490,416 490,448" marker-end="url(#fl)"/>
-          <path class="arete" id="e-ecriture-depot" d="M605,386 C605,420 570,416 570,448" marker-end="url(#fl)"/>
-          <path class="arete" id="e-shell-depot" d="M750,386 C750,420 640,416 640,448" marker-end="url(#fl)"/>
-          <path class="arete" id="e-boucle-verif" d="M135,262 L135,328" marker-end="url(#fl)"/>
-          <path class="arete" id="e-verif-depot" d="M232,384 C262,446 318,494 378,494" marker-end="url(#fl)"/>
-          <path class="arete" id="e-verif-git" d="M135,392 L135,448" marker-end="url(#fl)"/>
+          <path class="arete" id="e-thomas-boucle" d="M200,80 L200,176" marker-end="url(#fl)"/>
+          <path class="arete" id="e-relecteur-boucle" d="M1124,172 V104 Q1124,92 1112,92 H238 Q226,92 226,104 V176" marker-end="url(#fl)"/>
+          <path class="arete" id="e-boucle-exec" d="M232,206 L346,206" marker-end="url(#fl)"/>
+          <path class="arete" id="e-exec-boucle" d="M346,240 L234,240" marker-end="url(#fl)"/>
+          <path class="arete" id="e-exec-pass" d="M562,220 L596,220" marker-end="url(#fl)"/>
+          <path class="arete" id="e-pass-modele" d="M742,220 L776,220" marker-end="url(#fl)"/>
+          <path class="arete" id="e-exec-lecture" d="M395,262 C395,300 355,296 355,326" marker-end="url(#fl)"/>
+          <path class="arete" id="e-exec-recherche" d="M435,262 C435,300 500,296 500,326" marker-end="url(#fl)"/>
+          <path class="arete" id="e-exec-ecriture" d="M480,262 C480,300 645,296 645,326" marker-end="url(#fl)"/>
+          <path class="arete" id="e-exec-shell" d="M520,262 C520,300 790,296 790,326" marker-end="url(#fl)"/>
+          <path class="arete" id="e-lecture-depot" d="M355,386 C355,420 470,416 470,446" marker-end="url(#fl)"/>
+          <path class="arete" id="e-recherche-depot" d="M500,386 C500,420 530,416 530,446" marker-end="url(#fl)"/>
+          <path class="arete" id="e-ecriture-depot" d="M645,386 C645,420 610,416 610,446" marker-end="url(#fl)"/>
+          <path class="arete" id="e-shell-depot" d="M790,386 C790,420 680,416 680,446" marker-end="url(#fl)"/>
+          <path class="arete" id="e-boucle-verif" d="M136,262 L136,326" marker-end="url(#fl)"/>
+          <path class="arete" id="e-verif-depot" d="M232,384 C290,440 340,494 416,494" marker-end="url(#fl)"/>
+          <path class="arete" id="e-verif-git" d="M136,392 L136,446" marker-end="url(#fl)"/>
+          <path class="arete" id="e-relecteur-contrats" d="M1124,242 L1124,300" marker-end="url(#fl)"/>
+          <path class="arete" id="e-contrats-verif" d="M1030,352 C1000,352 1004,552 960,552 L262,552 C240,552 238,420 226,394" marker-end="url(#fl)"/>
+          <path class="arete" id="e-depot-revue" d="M718,486 C860,486 900,473 1028,473" marker-end="url(#fl)"/>
         </g>
         <text class="etiq" x="290" y="198" text-anchor="middle">lance une session</text>
         <text class="etiq" x="290" y="256" text-anchor="middle">bilan</text>
-        <text class="etiq" x="580" y="208" text-anchor="middle">API</text>
-        <text class="etiq" x="760" y="208" text-anchor="middle">API</text>
-        <text class="etiq" x="148" y="300">make check</text>
-        <text class="etiq" x="148" y="425">commit</text>
-        <text class="etiq" x="560" y="128">réglages, interventions</text>
+        <text class="etiq" x="579" y="208" text-anchor="middle">API</text>
+        <text class="etiq" x="759" y="208" text-anchor="middle">API</text>
+        <text class="etiq" x="148" y="300">à chaque fin de session</text>
+        <text class="etiq" x="148" y="425">si tout passe</text>
+        <text class="etiq" x="660" y="88" text-anchor="middle">règle la chaîne si elle coince</text>
+        <text class="etiq" x="1124" y="276" text-anchor="middle">écrits avant la vague</text>
+        <text class="etiq" x="610" y="547" text-anchor="middle">exécutés par make check à chaque session</text>
+        <text class="etiq" x="880" y="468" text-anchor="middle">relit tout le code à la fin</text>
         <g id="noeuds">
-          <g class="noeud humain" id="n-thomas"><rect class="fond" x="40" y="24" width="190" height="56" rx="10"/><text class="t" x="56" y="48">Thomas</text><text class="s" x="56" y="66">commanditaire</text></g>
-          <g class="noeud humain" id="n-relecteur"><rect class="fond" x="770" y="24" width="190" height="56" rx="10"/><text class="t" x="786" y="48">Relecteur</text><text class="s" x="786" y="66">modèle Claude, hors boucle</text></g>
+          <g class="noeud humain" id="n-thomas"><rect class="fond" x="20" y="24" width="232" height="56" rx="10"/><text class="t" x="36" y="48">Thomas</text><text class="s" x="36" y="66">commanditaire, décide de la suite</text></g>
           <g class="noeud" id="n-boucle"><rect class="fond" x="40" y="178" width="192" height="84" rx="10"/><text class="t" x="56" y="202">Boucle</text><text class="s" x="56" y="220">boucle_executant.py</text><text class="b" id="b-boucle" x="56" y="246"></text></g>
-          <g class="noeud" id="n-exec"><rect class="fond" x="348" y="178" width="214" height="84" rx="10"/><text class="t" x="364" y="202">Exécutant</text><text class="s" x="364" y="220">Claude Code -p, piloté par Qwen</text><text class="b" id="b-exec" x="364" y="246"></text></g>
+          <g class="noeud" id="n-verif"><rect class="fond" x="40" y="328" width="192" height="64" rx="10"/><text class="t" x="56" y="352">make check</text><text class="s" x="56" y="370">ruff, tests de Qwen, contrats</text><text class="b" id="b-verif" x="56" y="386"></text></g>
+          <g class="noeud" id="n-git"><rect class="fond" x="40" y="448" width="192" height="62" rx="10"/><text class="t" x="56" y="472">Git</text><text class="s" x="56" y="490">un commit par ticket réussi</text><text class="b" id="b-git" x="216" y="472" text-anchor="end"></text></g>
+          <g class="noeud" id="n-exec"><rect class="fond" x="348" y="178" width="214" height="84" rx="10"/><text class="t" x="364" y="202">Exécutant · Qwen</text><text class="s" x="364" y="220">écrit le code, via Claude Code</text><text class="b" id="b-exec" x="364" y="246"></text></g>
           <g class="noeud" id="n-pass"><rect class="fond" x="598" y="192" width="144" height="56" rx="10"/><text class="t" x="612" y="216">Passerelle</text><text class="s" x="612" y="234">LiteLLM · 4000</text></g>
-          <g class="noeud" id="n-modele"><rect class="fond" x="778" y="168" width="194" height="104" rx="10"/><text class="t" x="794" y="192" id="t-modele">Qwen3.8 27B</text><text class="s" x="794" y="210">LM Studio · 8080</text><text class="b" id="b-modele" x="794" y="236"></text><rect class="jauge-fond" x="794" y="250" width="162" height="6" rx="3"/><rect class="jauge" id="jauge" x="794" y="250" width="0" height="6" rx="3"/></g>
-          <g class="noeud lecture" id="n-lecture"><rect class="fond" x="250" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="250" y="328" width="5" height="58" rx="2"/><text class="t" x="264" y="350">Lecture</text><text class="s" x="264" y="368">Read</text><text class="b" id="b-lecture" x="366" y="350" text-anchor="end"></text></g>
-          <g class="noeud recherche" id="n-recherche"><rect class="fond" x="395" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="395" y="328" width="5" height="58" rx="2"/><text class="t" x="409" y="350">Recherche</text><text class="s" x="409" y="368">Glob, Grep</text><text class="b" id="b-recherche" x="511" y="350" text-anchor="end"></text></g>
-          <g class="noeud ecriture" id="n-ecriture"><rect class="fond" x="540" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="540" y="328" width="5" height="58" rx="2"/><text class="t" x="554" y="350">Écriture</text><text class="s" x="554" y="368">Write, Edit</text><text class="b" id="b-ecriture" x="656" y="350" text-anchor="end"></text></g>
-          <g class="noeud shell" id="n-shell"><rect class="fond" x="685" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="685" y="328" width="5" height="58" rx="2"/><text class="t" x="699" y="350">Shell</text><text class="s" x="699" y="368">Bash</text><text class="b" id="b-shell" x="801" y="350" text-anchor="end"></text></g>
-          <g class="noeud" id="n-depot"><rect class="fond" x="378" y="448" width="300" height="62" rx="10"/><text class="t" x="394" y="472">Dépôt</text><text class="s" x="394" y="490">src/, tests/, Makefile, pyproject.toml</text><text class="b" id="b-depot" x="662" y="472" text-anchor="end"></text></g>
-          <g class="noeud" id="n-verif"><rect class="fond" x="40" y="328" width="192" height="64" rx="10"/><text class="t" x="56" y="352">Vérification</text><text class="s" x="56" y="370">make check, contrats</text><text class="b" id="b-verif" x="56" y="386"></text></g>
-          <g class="noeud" id="n-git"><rect class="fond" x="40" y="448" width="192" height="62" rx="10"/><text class="t" x="56" y="472">Git</text><text class="s" x="56" y="490">commit sur vague-0</text><text class="b" id="b-git" x="216" y="472" text-anchor="end"></text></g>
+          <g class="noeud" id="n-modele"><rect class="fond" x="778" y="168" width="200" height="104" rx="10"/><text class="t" x="794" y="192" id="t-modele">Qwen3.8 27B</text><text class="s" x="794" y="210">le modèle · LM Studio · 8080</text><text class="b" id="b-modele" x="794" y="236"></text><rect class="jauge-fond" x="794" y="250" width="168" height="6" rx="3"/><rect class="jauge" id="jauge" x="794" y="250" width="0" height="6" rx="3"/></g>
+          <g class="noeud lecture" id="n-lecture"><rect class="fond" x="290" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="290" y="328" width="5" height="58" rx="2"/><text class="t" x="304" y="350">Lecture</text><text class="s" x="304" y="368">Read</text><text class="b" id="b-lecture" x="406" y="350" text-anchor="end"></text></g>
+          <g class="noeud recherche" id="n-recherche"><rect class="fond" x="435" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="435" y="328" width="5" height="58" rx="2"/><text class="t" x="449" y="350">Recherche</text><text class="s" x="449" y="368">Glob, Grep</text><text class="b" id="b-recherche" x="551" y="350" text-anchor="end"></text></g>
+          <g class="noeud ecriture" id="n-ecriture"><rect class="fond" x="580" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="580" y="328" width="5" height="58" rx="2"/><text class="t" x="594" y="350">Écriture</text><text class="s" x="594" y="368">Write, Edit</text><text class="b" id="b-ecriture" x="696" y="350" text-anchor="end"></text></g>
+          <g class="noeud shell" id="n-shell"><rect class="fond" x="725" y="328" width="130" height="58" rx="10"/><rect class="marque-f" x="725" y="328" width="5" height="58" rx="2"/><text class="t" x="739" y="350">Shell</text><text class="s" x="739" y="368">Bash</text><text class="b" id="b-shell" x="841" y="350" text-anchor="end"></text></g>
+          <g class="noeud" id="n-depot"><rect class="fond" x="418" y="448" width="300" height="62" rx="10"/><text class="t" x="434" y="472">Dépôt</text><text class="s" x="434" y="490">code écrit par Qwen : src/, tests/unit/</text><text class="b" id="b-depot" x="702" y="472" text-anchor="end"></text></g>
+          <g class="noeud claude" id="n-relecteur"><rect class="fond" x="1030" y="172" width="188" height="70" rx="10"/><text class="t" x="1046" y="196">Relecteur · Claude</text><text class="s" x="1046" y="214">surveille, règle, juge</text><text class="b" id="b-relecteur" x="1046" y="232"></text></g>
+          <g class="noeud claude" id="n-contrats"><rect class="fond" x="1030" y="302" width="188" height="66" rx="10"/><text class="t" x="1046" y="326">Tests de contrat</text><text class="s" x="1046" y="344">tests/contrats, par Claude</text><text class="b" id="b-contrats" x="1046" y="360"></text></g>
+          <g class="noeud claude" id="n-revue"><rect class="fond" x="1030" y="440" width="188" height="66" rx="10"/><text class="t" x="1046" y="464">Revue de vague</text><text class="s" x="1046" y="482">phase B, rapport, verdict</text><text class="b" id="b-revue" x="1046" y="498"></text></g>
         </g>
         <g id="particules"></g>
       </svg>
       </div>
-      <div class="legende" aria-label="Familles d'outils">
+      <div class="legende" aria-label="Zones et familles d'outils">
+        <span><i class="z zq"></i>Qwen, développe</span><span><i class="z zb"></i>boucle, vérifie</span><span><i class="z zc"></i>Claude, contrôle</span>
         <span><i style="background:var(--s1)"></i>Lecture</span><span><i style="background:var(--s4)"></i>Recherche</span>
         <span><i style="background:var(--s2)"></i>Écriture</span><span><i style="background:var(--s3)"></i>Shell</span>
         <span><i style="background:var(--bon)"></i>vérification réussie</span><span><i style="background:var(--critique)"></i>échec ou refus</span>
@@ -778,13 +834,15 @@ async function scene(ev){
     case "garde": eclat("boucle","eclat-alerte"); await particule("e-verif-depot","alerte",false,700); eclat("depot","eclat-alerte"); break;
     case "hors_liste": eclat("depot","eclat-alerte"); break;
     case "install": await particule("e-boucle-verif","accent"); eclat("verif"); break;
-    case "verif": await particule("e-boucle-verif","accent"); await particule("e-verif-depot", ev.ok ? "bon" : "critique", false, 700);
-      eclat("verif", ev.ok ? "eclat-ok" : "eclat-ko"); break;
+    case "verif": eclat("contrats"); await Promise.all([particule("e-boucle-verif","accent"), particule("e-contrats-verif","zc",false,1500)]);
+      await particule("e-verif-depot", ev.ok ? "bon" : "critique", false, 700);
+      eclat("verif", ev.ok ? "eclat-ok" : "eclat-ko"); eclat("contrats", ev.ok ? "eclat-ok" : "eclat-ko"); break;
     case "commit": await particule("e-verif-git","bon"); eclat("git","eclat-ok"); break;
     case "bloque": eclat("boucle","eclat-ko"); break;
     case "intervention": if (ev.auteur === "Thomas") { eclat("thomas"); await particule("e-thomas-boucle","accent"); }
       else { eclat("relecteur"); await particule("e-relecteur-boucle","accent",false,1100); } eclat("boucle"); break;
-    case "boucle_fin": case "boucle_arret": case "boucle_erreur": eclat("boucle", ev.evt === "boucle_fin" ? "eclat-ok" : "eclat-alerte"); break;
+    case "boucle_fin": eclat("boucle","eclat-ok"); await particule("e-depot-revue","zc",false,1200); eclat("revue"); break;
+    case "boucle_arret": case "boucle_erreur": eclat("boucle","eclat-alerte"); break;
   }
 }
 async function jouer(){ if (enLecture) return; enLecture = true;
@@ -812,6 +870,13 @@ function graphe(){
   const v = etat.mesures.derniere_verif;
   $("#b-verif").textContent = v ? (v.ok ? `✓ ${v.ticket} réussi` : `✕ ${v.ticket} : ${v.motif}`).slice(0,28) : "";
   const g = etat.mesures.dernier_commit; $("#b-git").textContent = g ? g.commit : "";
+  const m = etat.mesures, rg = m.dernier_reglage;
+  $("#b-relecteur").textContent = rg ? `dernier réglage ${heure(rg.t).slice(0,5)}` : "surveille la boucle";
+  const ct = v && v.contrats;
+  $("#b-contrats").textContent = ct && (ct.reussis || ct.echoues) ? `${v.ticket} : ${ct.reussis} ✓ ${ct.echoues ? ct.echoues + " ✕" : ""}` : `${m.nb_contrats} tests, en attente`;
+  const finie = !c.boucle && m.tickets > 0 && m.faits + m.bloques === m.tickets;
+  $("#b-revue").textContent = finie ? "à faire maintenant" : "après la vague";
+  document.getElementById("n-revue").classList.toggle("actif", finie);
 }
 function phaseTexte(p){ return {reflechit:"réfléchit", outil:"utilise un outil", attend:"attend le modèle", ecrit:"écrit", terminee:"terminée", verification:"vérification"}[p] || "démarre"; }
 
