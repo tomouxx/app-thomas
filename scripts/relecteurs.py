@@ -141,7 +141,8 @@ ANGLES = {
 - Reprends chaque critère d'acceptation et chaque point de « Contrat » et de « Précisions de la
   spécification » du ticket, un par un, et vérifie-le dans le code (pas seulement dans les tests).
 - Vérifie que les noms (fonctions, classes, routes, champs, messages) sont ceux de specs/.
-- Signale ce qui est fait en plus du ticket, et les fichiers modifiés hors de sa liste.""",
+- Signale ce qui est fait en plus du ticket, et les fichiers modifiés hors de sa liste. Un
+  `__init__.py` vide exigé par specs/01 §2 n'est pas un écart : ne le signale pas.""",
     "principes": """Les sept principes de specs/00 §5 et les contrôles transversaux de specs/09 §5.
 - Aucune fonction d'envoi (smtplib, sendMail, send_message, appel d'envoi).
 - Adresse du modèle limitée au bouclage. Aucun appel réseau dans le code ni dans les tests.

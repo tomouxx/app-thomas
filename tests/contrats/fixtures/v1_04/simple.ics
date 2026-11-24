@@ -1,0 +1,16 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Cabinet//Jeu synthetique V1-04//FR
+BEGIN:VEVENT
+UID:copil-simple@exemple.test
+DTSTAMP:20261101T080000Z
+DTSTART;TZID=Europe/Zurich:20261125T100000
+DTEND;TZID=Europe/Zurich:20261125T113000
+SUMMARY:Comité de pilotage
+LOCATION:Salle Léman
+ORGANIZER;CN=Alice Martin:MAILTO:Alice.Martin@Exemple.test
+ATTENDEE;CN=Bruno Petit;ROLE=REQ-PARTICIPANT:mailto:bruno.petit@exemple.test
+ATTENDEE;CN=Claire Dubois;ROLE=OPT-PARTICIPANT:mailto:CLAIRE.DUBOIS@exemple.test
+ATTENDEE;CN=Bruno Petit:mailto:Bruno.Petit@exemple.test
+END:VEVENT
+END:VCALENDAR

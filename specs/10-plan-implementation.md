@@ -25,7 +25,7 @@ Dans les critères « Terminé quand », `make check` s'entend avec les tests de
 
 ## Lot 0 : preuve de la chaîne
 
-Ce lot ne livre aucune fonction à l'utilisateur. Il mesure si l'exécutant termine trois tâches simples sans aide (`specs/09 §6.1`). Les tests de contrat de ses trois tâches existent déjà (`tests/contrats/test_v0_0*.py`, 51 tests).
+Ce lot ne livre aucune fonction à l'utilisateur. Il mesure si l'exécutant termine trois tâches simples sans aide (`specs/09 §6.1`). Les tests de contrat de ses trois tâches existent déjà (`tests/contrats/test_v0_0*.py`, 56 tests).
 
 ### V0-01 Squelette du dépôt
 

@@ -16,7 +16,9 @@ Cabinet est une application locale qui prépare les réunions, rédige leurs com
 | `tickets/` | exécutant, relecteur | Un fichier par ticket et le tableau d'état |
 | `revues/GABARIT.md` | relecteur | Le modèle de rapport de vague |
 | `scripts/boucle_executant.py` | Thomas, relecteur | Lance une session de l'exécutant par ticket, relance `make check`, fait le commit |
-| `scripts/suivi.py` | Thomas | Page de suivi sur `http://127.0.0.1:8770/` |
+| `scripts/suivi.py` | Thomas | Page de suivi sur `http://127.0.0.1:8770/` : direct, sessions, fiches de ticket, revues, couverture, mesures, pilotage |
+| `scripts/relecteurs.py` | Thomas, relecteur | Six agents Claude relisent chaque commit de ticket, rapports dans `.chaine/revues/` |
+| `revues/` | relecteur, Thomas | Rapports de vague, dont `revues/vague-0.md` |
 | `scripts/chaine.sh` | Thomas | Allume et arrête le serveur du modèle et la passerelle |
 | `scripts/verifier_garde.sh`, `scripts/executant.sh` | relecteur, Thomas | Contrôle des fichiers protégés, session interactive de diagnostic |
 | `chaine/`, `exemples/` | Thomas | Configuration de la passerelle, fichiers d'exemple |
@@ -28,7 +30,7 @@ Cabinet est une application locale qui prépare les réunions, rédige leurs com
 3. Suis `docs/CHAINE.md` pour installer le modèle et la passerelle, puis lance `scripts/chaine.sh demarrer`.
 4. Crée la branche `vague-0`.
 5. Dans un terminal ordinaire, ouvre Claude Code et lance la phase A du relecteur (message dans `REVIEW.md`).
-6. Lance `python3 scripts/suivi.py` et ouvre `http://127.0.0.1:8770/`.
+6. Lance `python3 scripts/suivi.py` et ouvre `http://127.0.0.1:8770/`. Lance aussi `python3 scripts/relecteurs.py` pour la relecture automatique de chaque ticket.
 7. Lance `python3 scripts/boucle_executant.py 0`. Le script ouvre une session de l'exécutant par ticket.
 8. Quand la boucle s'arrête, lance la phase B du relecteur.
 9. Lis `revues/vague-0.md`. C'est ce rapport qui dit si la chaîne tient.

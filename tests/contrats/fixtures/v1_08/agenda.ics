@@ -1,0 +1,25 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Cabinet//Jeu synthetique V1-08//FR
+BEGIN:VEVENT
+UID:point-hebdo-v108@exemple.test
+DTSTAMP:20261101T080000Z
+DTSTART:20261104T090000Z
+DTEND:20261104T093000Z
+RRULE:FREQ=WEEKLY;COUNT=6
+SUMMARY:Point hebdo
+LOCATION:Salle Orion
+ORGANIZER:mailto:alice.martin@exemple.test
+ATTENDEE:mailto:bruno.keller@exemple.test
+ATTENDEE:mailto:chloe.favre@exemple.test
+END:VEVENT
+BEGIN:VEVENT
+UID:comite-pilotage-v108@exemple.test
+DTSTAMP:20261101T080000Z
+DTSTART:20261126T130000Z
+DTEND:20261126T143000Z
+SUMMARY:Comité de pilotage
+ORGANIZER:mailto:alice.martin@exemple.test
+ATTENDEE:mailto:david.roux@exemple.test
+END:VEVENT
+END:VCALENDAR

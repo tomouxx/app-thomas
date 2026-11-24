@@ -1,0 +1,30 @@
+{
+  "_note": "Jeu synthétique du relecteur pour la page Entrée (V1-06, specs/08 §3). Heure fixée : mardi 24.11.2026, 10:00 à Zurich. Trois réunions le 23.11.2026, une le 24.11.2026, une le 22.11.2026. Les éléments couvrent chaque état et chaque nature utile.",
+  "series": [
+    {"id": 1, "key": "point hebdo equipe", "label": "Point hebdo équipe"},
+    {"id": 2, "key": "comite de pilotage", "label": "Comité de pilotage"},
+    {"id": 3, "key": "revue budget", "label": "Revue budget"},
+    {"id": 4, "key": "point hebdo", "label": "Point hebdo"}
+  ],
+  "meeting": [
+    {"id": 1, "series_id": 1, "title": "Point hebdo équipe", "date": "2026-11-23"},
+    {"id": 2, "series_id": 2, "title": "Comité de pilotage", "date": "2026-11-23"},
+    {"id": 3, "series_id": 3, "title": "Revue budget", "date": "2026-11-23"},
+    {"id": 4, "series_id": 1, "title": "Point hebdo équipe", "date": "2026-11-24"},
+    {"id": 5, "series_id": 2, "title": "Comité de pilotage", "date": "2026-11-22"}
+  ],
+  "inbox_item": [
+    {"id": 1, "path": "entree/2026-11-23_point-hebdo-equipe.vtt", "kind": "teams_transcript", "status": "a_rattacher", "name_date": "2026-11-23", "detected_at": "2026-11-24T09:00:00+01:00"},
+    {"id": 2, "path": "entree/2026-11-23_comite-de-pilotage.m4a", "kind": "audio", "status": "consentement_requis", "name_date": "2026-11-23", "detected_at": "2026-11-24T09:01:00+01:00"},
+    {"id": 3, "path": "entree/notes-revue.md", "kind": "notes", "status": "a_rattacher", "detected_at": "2026-11-24T09:15:00+01:00"},
+    {"id": 4, "path": "traite/2026-11/2026-11-20_point-hebdo.vtt", "kind": "teams_transcript", "status": "traite", "name_date": "2026-11-20", "meeting_id": 5, "detected_at": "2026-11-20T18:00:00+01:00"},
+    {"id": 5, "path": "entree/app_nov.html", "kind": "app_capture_text", "status": "pret", "detected_at": "2026-11-24T09:02:00+01:00"},
+    {"id": 6, "path": "entree/2026-11-23_revue-budget.vtt", "kind": "teams_transcript", "status": "erreur", "name_date": "2026-11-23", "meeting_id": 3, "error": "Le fichier n'est pas au format WebVTT.", "detected_at": "2026-11-24T09:03:00+01:00"},
+    {"id": 7, "path": "entree/2026-11-23_revue-budget.m4a", "kind": "audio", "status": "erreur", "name_date": "2026-11-23", "meeting_id": 3, "consent_confirmed": true, "consent_at": "2026-11-24T09:30:00+01:00", "error": "La transcription locale n'est pas installée.", "detected_at": "2026-11-24T09:04:00+01:00"},
+    {"id": 8, "path": "entree/enregistrement-atelier.wav", "kind": "audio", "status": "erreur", "error": "Erreur synthétique de lecture.", "detected_at": "2026-11-24T09:05:00+01:00"},
+    {"id": 9, "path": "entree/brouillon-ecarte.md", "kind": "notes", "status": "ignore", "detected_at": "2026-11-21T08:00:00+01:00"},
+    {"id": 10, "path": "entree/app_oct.txt", "kind": "app_capture_text", "status": "erreur", "error": "Aucune ligne d'imputation lisible dans app_oct.txt.", "detected_at": "2026-11-24T09:06:00+01:00"},
+    {"id": 11, "path": "entree/2026-11-23_sans-reunion.vtt", "kind": "teams_transcript", "status": "erreur", "name_date": "2026-11-23", "error": "Erreur synthétique sans réunion.", "detected_at": "2026-11-24T09:07:00+01:00"},
+    {"id": 12, "path": "entree/archive.zip", "kind": "inconnu", "status": "ignore", "detected_at": "2026-11-24T09:08:00+01:00"}
+  ]
+}
