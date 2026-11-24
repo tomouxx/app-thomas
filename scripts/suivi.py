@@ -912,7 +912,7 @@ def couverture() -> dict:
 
 _ECRITURE = threading.Lock()
 DECISIONS = {"corriger", "accepte", "hors_sujet"}
-RE_CLE = re.compile(r"V\d+-(?:\d+|C\d+)@[0-9a-f]{7,40}/[a-z]+-\d+")
+RE_CLE = re.compile(r"V\d+-(?:\d+|C\d+)@[0-9a-f]{7,40}/(?:r\d+-)?[a-z]+-\d+")
 
 
 def lire_json(chemin: Path, defaut: object) -> object:
@@ -943,6 +943,10 @@ def rapports_avec_tri() -> list[dict]:
         for c in r.get("constats", []):
             c["cle"] = f"{r.get('ticket')}@{r.get('commit')}/{c.get('id')}"
             c["tri"] = tri.get(c["cle"])
+        # Décisions prises sur une relecture précédente du même commit, archivée depuis.
+        prefixe = f"{r.get('ticket')}@{r.get('commit')}/"
+        cles = {c["cle"] for c in r.get("constats", [])}
+        r["tri_archive"] = sum(1 for cle in tri if cle.startswith(prefixe) and cle not in cles)
     return rapports
 
 
@@ -2366,8 +2370,9 @@ async function revues(force){
   const ordreG = {bloquant:0, majeur:1, mineur:2, remarque:3}, ordreS = {confirme:0, incertain:1, rejete:2};
   poser("#revues", R.slice().reverse().map(r => `<div class="carte revue">
     <div class="carte-t"><a href="#ticket=${esc(r.ticket)}" data-fiche="${esc(r.ticket)}" class="mono">${esc(r.ticket)}</a> · commit <code>${esc(r.commit)}</code> <span class="statut ${r.verdict === "ok" ? "reussi" : r.verdict === "ko" ? "echec" : "interrompu"}">${esc(VERDICT[r.verdict] || r.verdict)}</span>
-      <span class="aide">relu ${heure(r.date)} · ${duree(r.duree_s)} · ${nf.format(r.cout_usd)} $ · ${esc(r.modeles.angles)}, vérificateur ${esc(r.modeles.verificateur)}</span></div>
+      <span class="aide">${(r.relecture || 1) > 1 ? `relecture n° ${r.relecture} · ` : ""}relu ${heure(r.date)} · ${duree(r.duree_s)} · ${nf.format(r.cout_usd)} $ · ${esc(r.modeles.angles)}, vérificateur ${esc(r.modeles.verificateur)}</span></div>
     <p class="synthese">${esc(r.synthese)}</p>
+    ${r.tri_archive ? `<div class="alerte-b alerte"><b>⚠ Constats à trier de nouveau</b><span>Ce ticket a été relu une nouvelle fois. Vos ${r.tri_archive} décision(s) portaient sur la relecture précédente, gardée dans .chaine/revues/archives/. Les constats ci-dessous sont nouveaux.</span></div>` : ""}
     <div class="angles">${r.angles.map(a => `<div class="angle"><b>${esc(NOMS_A[a.agent])}</b> <span class="statut ${a.verdict === "ok" ? "reussi" : a.verdict === "ko" || a.verdict === "erreur" ? "echec" : "interrompu"}">${esc(VERDICT[a.verdict] || a.verdict)}</span><div>${esc(a.resume || a.erreur || "")}</div></div>`).join("")}</div>
     <div class="defile"><table class="constats"><thead><tr><th>Statut</th><th>Gravité</th><th>Agent</th><th>Où</th><th>Constat</th><th>Votre décision</th></tr></thead><tbody>
     ${r.constats.slice().sort((a,b) => (ordreS[a.statut] ?? 1) - (ordreS[b.statut] ?? 1) || ordreG[a.gravite] - ordreG[b.gravite]).map(c => `<tr class="st-${esc(c.statut)}">

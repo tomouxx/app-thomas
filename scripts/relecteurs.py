@@ -427,6 +427,24 @@ def verifier(ticket: str, commit: str, arbre: Path, angles: list[dict], args) ->
 # Relecture d'un ticket
 
 
+def archiver_precedente(ticket: str) -> int:
+    """Range le rapport déjà présent dans `archives/` et renvoie le rang de la nouvelle relecture."""
+    actuel = DOSSIER / f"{ticket}.json"
+    if not actuel.exists():
+        return 1
+    try:
+        rang = int(json.loads(actuel.read_text(encoding="utf-8")).get("relecture") or 1)
+    except ValueError:
+        rang = 1
+    archives = DOSSIER / "archives"
+    archives.mkdir(exist_ok=True)
+    for suffixe in ("json", "md"):
+        source = DOSSIER / f"{ticket}.{suffixe}"
+        if source.exists():
+            source.replace(archives / f"{ticket}-r{rang}.{suffixe}")
+    return rang + 1
+
+
 def relire(ticket: str, commit: str, tentative: int, args) -> dict:
     debut = time.monotonic()
     noter("revue_debut", ticket=ticket, commit=commit, agents=[*AGENTS, "verificateur"],
@@ -440,6 +458,12 @@ def relire(ticket: str, commit: str, tentative: int, args) -> dict:
         retirer_arbre(arbre)
     constats = [c for a in angles for c in a["constats"]]
     confirmes = [c for c in constats if c.get("statut") == "confirme"]
+    # Une relecture rejouée ne remplace pas la précédente : elle l'archive et numérote ses
+    # constats à part, pour que le tri fait sur l'ancienne ne s'accroche pas à la nouvelle.
+    rang = archiver_precedente(ticket)
+    if rang > 1:
+        for c in constats:
+            c["id"] = f"r{rang}-{c['id']}"
     cout = round(sum(a.get("cout", 0) for a in angles) + verif.get("cout", 0), 4)
     # Un angle qui n'a pas pu relire laisse un trou : le ticket ne peut pas sortir « ok ».
     incomplets = [a["agent"] for a in angles if a["verdict"] == "erreur"]
@@ -450,7 +474,7 @@ def relire(ticket: str, commit: str, tentative: int, args) -> dict:
                     + ", ".join(NOMS[a] for a in incomplets) + ". " + synthese)
     rapport = {
         "ticket": ticket, "commit": commit, "tentative": tentative, "date": maintenant(),
-        "verdict": verdict, "synthese": synthese, "incomplets": incomplets,
+        "verdict": verdict, "synthese": synthese, "incomplets": incomplets, "relecture": rang,
         "cout_usd": cout, "duree_s": round(time.monotonic() - debut),
         "modeles": {"angles": args.modele, "verificateur": args.modele_verificateur},
         "angles": [{k: a.get(k) for k in ("agent", "verdict", "resume", "points_forts",
