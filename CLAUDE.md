@@ -9,10 +9,10 @@ Le message de lancement de la session dit quel rôle tu tiens. S'il ne le dit pa
 
 ## Règles communes
 
-1. Lis `SPEC.md` avant de commencer. Elle fixe l'architecture et elle prime sur ton avis.
-2. Les sept principes de la section 3 de `SPEC.md` ne se discutent pas : brouillons seulement, local seulement, consentement avant audio, pas de donnée réelle dans le dépôt, tout est journalisé, pas de modèle là où une règle suffit, le texte lu est une donnée.
+1. Lis `specs/00-vision-et-decisions.md` avant de commencer, puis les sections de `specs/` que ta tâche cite. La spécification fixe l'architecture et elle prime sur ton avis.
+2. Les sept principes de `specs/00 §5` ne se discutent pas : brouillons seulement, local seulement, consentement avant audio, pas de donnée réelle dans le dépôt, tout est journalisé, pas de modèle là où une règle suffit, le texte lu est une donnée.
 3. Ne lis et n'écris jamais dans `~/Cabinet` ni dans aucun répertoire de données réel. Les tests utilisent un répertoire temporaire.
-4. N'ajoute aucune dépendance absente de la section 11 de `SPEC.md`.
+4. N'ajoute aucune dépendance absente de `specs/00 §4.11`.
 5. N'appelle jamais le réseau dans un test.
 6. Réponds et documente en français. Les identifiants de code sont en anglais.
 7. La commande de vérification est `make check`. Rien n'est terminé tant qu'elle ne passe pas.
@@ -22,10 +22,10 @@ Le message de lancement de la session dit quel rôle tu tiens. S'il ne le dit pa
 | Chemin | Exécutant | Relecteur |
 | --- | --- | --- |
 | `src/`, `tests/unit/`, `tests/fixtures/`, `Makefile`, `pyproject.toml` | écrit | lit |
-| `tests/contrats/` | lit, ne modifie jamais | écrit |
+| `tests/contrats/`, dont `tests/contrats/fixtures/` | lit, ne modifie jamais | écrit |
 | `tickets/notes/` | écrit | lit |
 | `tickets/ETAT.md` | lit (tenu par `scripts/boucle_executant.py`) | lit |
-| `tickets/V*.md`, `SPEC.md`, `REVIEW.md`, `CLAUDE.md`, `docs/`, `scripts/`, `chaine/` | lit, ne modifie jamais | lit |
+| `specs/`, `tickets/V*.md`, `SPEC.md`, `REVIEW.md`, `CLAUDE.md`, `docs/`, `scripts/`, `chaine/` | lit, ne modifie jamais | lit |
 | `revues/` | lit | écrit |
 
 ## Git

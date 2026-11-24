@@ -1,5 +1,7 @@
 # Questions de la phase A, vague 0
 
+Les points de ce document sont tranchés dans `specs/00 §4.12` (décisions du 24.11.2026). Les renvois à `SPEC.md` désignent la version 1.0 du 23.11.2026.
+
 Pour l'architecte. Écrit par le relecteur (Claude Fable 5.2) le 24.11.2026, pendant l'écriture des tests de contrat. Chaque point dit ce que le relecteur a fait en attendant la réponse.
 
 ## Critères impossibles à tester tels quels

@@ -57,6 +57,7 @@ RE_ID = re.compile(r"V\d+-(?:\d+|C\d+)")
 # après chaque session et note l'écart dans le journal.
 PROTEGES = (
     "tests/contrats/",
+    "specs/",
     "docs/",
     "scripts/",
     "chaine/",
@@ -100,6 +101,7 @@ AUTORISES = [
 ]
 INTERDITS = [
     "Edit(tests/contrats/**)",
+    "Edit(specs/**)",
     "Edit(docs/**)",
     "Edit(scripts/**)",
     "Edit(chaine/**)",

@@ -1,7 +1,7 @@
 [llm]
 base_url = "http://127.0.0.1:8080/v1"
 model = "qwen-local"
-timeout_s = 300
+timeout_s = 900
 context_tokens = 64000
 
 [transcription]
@@ -12,7 +12,7 @@ delete_audio_after_validation = true
 ics_path = "config/agenda.ics"
 
 [cra]
-deadline = 2026-11-30
+# deadline = 2026-11-30
 
 [cra.regles]
 R1 = true

@@ -5,7 +5,7 @@ répertoire de données temporaire (`CABINET_HOME`, fixé par `conftest.py`).
 
 Le ticket ne dit pas ce que renvoie `get_session()`. Les tests ouvrent donc
 leurs propres sessions sur `get_engine()` et relisent la table `agent_run`
-en SQL, par les noms de la section 6 de `SPEC.md`.
+en SQL, par les noms de `specs/02 §2.1`.
 """
 
 from __future__ import annotations

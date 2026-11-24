@@ -118,10 +118,20 @@ La boucle s'y adapte sans toucher au modèle : 120 minutes par session, 32 000 t
 
 ## 9. Mesures de la vague 0
 
-Le rapport `revues/vague-0.md` reprend les mesures de `PLAN_VAGUES.md` : tickets terminés sans aide, interventions, tickets bloqués, durée. La page de suivi les calcule à partir du journal. Un ticket « terminé sans aide » est un ticket « fait » sans intervention entre son premier lancement et son commit.
+Le rapport `revues/vague-0.md` reprend les mesures de `specs/09 §6.1` : tickets terminés sans aide, interventions, tickets bloqués, durée. La page de suivi les calcule à partir du journal. Un ticket « terminé sans aide » est un ticket « fait » sans intervention entre son premier lancement et son commit.
 
-Seuil proposé par `PLAN_VAGUES.md` : trois tickets terminés et deux interventions de Thomas au plus.
+Seuil de `specs/09 §6.1` : trois tickets terminés et deux interventions de Thomas au plus.
 
-## 10. Dépôt distant
+## 10. Après une révision de la spécification
+
+`specs/`, les tickets et les tests de contrat sont des fichiers protégés : `scripts/verifier_garde.sh N` compare leur état à l'étiquette `vague-N-tests`. Quand l'architecte révise la spécification entre deux lancements, comme le 24.11.2026 sur la branche `specs`, il faut dans cet ordre :
+
+1. Faire entrer la révision dans la branche `vague-N`, par fusion de la branche qui la porte.
+2. Refaire la phase A du relecteur si un contrat a changé, et relancer ses tests avec `CABINET_CONTRATS=tous`.
+3. Reposer l'étiquette `vague-N-tests` sur le nouveau commit de tests.
+
+Sans ces trois gestes, la garde signale à tort les fichiers révisés comme touchés par l'exécutant.
+
+## 11. Dépôt distant
 
 Le dépôt est poussé sur `https://github.com/tomouxx/app-thomas`. Ce dépôt est public. Il ne doit donc contenir que le kit, le code et des données synthétiques, ce qui est déjà la règle du projet.

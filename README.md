@@ -6,14 +6,13 @@ Cabinet est une application locale qui prépare les réunions, rédige leurs com
 
 | Fichier | Pour qui | Rôle |
 | --- | --- | --- |
-| `SPEC.md` | tous | L'architecture et les règles, fixées |
+| `specs/` | tous | La spécification : vision et décisions, architecture, données, thèmes, tests, plan d'implémentation |
+| `SPEC.md`, `DECISIONS.md`, `PLAN_VAGUES.md` | tous | Tables de correspondance vers `specs/`, pour les renvois d'avant le 24.11.2026 |
 | `CLAUDE.md` | exécutant et relecteur | Les règles communes du dépôt, lues à chaque session |
 | `docs/EXECUTANT.md` | exécutant | La boucle de travail du modèle local |
 | `REVIEW.md` | relecteur | Les deux phases de relecture et le verdict |
 | `docs/CHAINE.md` | Thomas | Comment brancher le modèle local, la passerelle et Claude Code |
 | `docs/REPRISE.md` | qui reprend le projet | Ce qui est installé, comment lancer, surveiller, arrêter et reprendre la chaîne |
-| `PLAN_VAGUES.md` | Thomas | Les quatre vagues, leurs prérequis et leurs essais manuels |
-| `DECISIONS.md` | Thomas, architecte | Décisions, hypothèses à vérifier, points ouverts |
 | `tickets/` | exécutant, relecteur | Un fichier par ticket et le tableau d'état |
 | `revues/GABARIT.md` | relecteur | Le modèle de rapport de vague |
 | `scripts/boucle_executant.py` | Thomas, relecteur | Lance une session de l'exécutant par ticket, relance `make check`, fait le commit |
@@ -25,7 +24,7 @@ Cabinet est une application locale qui prépare les réunions, rédige leurs com
 ## Pour commencer
 
 1. Crée un dépôt Git vide, mets-y ce kit et fais un premier commit sur `main`.
-2. Lis `DECISIONS.md` et conteste ce qui ne te convient pas avant de lancer quoi que ce soit.
+2. Lis `specs/00-vision-et-decisions.md` et conteste ce qui ne te convient pas avant de lancer quoi que ce soit.
 3. Suis `docs/CHAINE.md` pour installer le modèle et la passerelle, puis lance `scripts/chaine.sh demarrer`.
 4. Crée la branche `vague-0`.
 5. Dans un terminal ordinaire, ouvre Claude Code et lance la phase A du relecteur (message dans `REVIEW.md`).
