@@ -235,3 +235,29 @@ def test_contrat_page_affiche_cible_etat_et_erreur() -> None:
     page = page_journal()
     for attendu in ("timesheets", "capture:42", "erreur", "capture illisible"):
         assert attendu in page
+
+
+def test_contrat_ligne_en_erreur_porte_sa_date_de_fin() -> None:
+    """La page affiche une durée : une ligne en erreur a aussi sa fin (specs/02 §2.1)."""
+    from cabinet.agents.journal import record_run
+
+    with (
+        ouvrir_session() as session,
+        pytest.raises(RuntimeError),
+        record_run(session, "agenda"),
+    ):
+        raise RuntimeError("agenda illisible")
+    assert lignes("status, ended_at IS NOT NULL") == [("erreur", 1)]
+
+
+def test_contrat_seul_clock_lit_l_heure_du_systeme() -> None:
+    """Les tests fixent la date par cabinet.clock (specs/01 §3.6, specs/09 §5)."""
+    racine = Path(__file__).resolve().parents[2] / "src" / "cabinet"
+    assert (racine / "clock.py").is_file()
+    motif = re.compile(r"\b(?:datetime\.now|datetime\.utcnow|date\.today)\b")
+    fautifs = [
+        str(chemin.relative_to(racine))
+        for chemin in sorted(racine.rglob("*.py"))
+        if chemin.name != "clock.py" and motif.search(chemin.read_text(encoding="utf-8"))
+    ]
+    assert fautifs == []

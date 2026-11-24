@@ -117,6 +117,7 @@ INTERDITS = [
     "Bash(git checkout *)",
     "Bash(git stash *)",
     # Fichiers de la chaîne : inutiles à l'exécutant et coûteux en contexte.
+    "Read(specs/*.html)",
     "Read(scripts/**)",
     "Read(chaine/**)",
     "Read(revues/**)",

@@ -330,3 +330,34 @@ def test_c8_les_tests_de_l_executant_utilisent_un_transport_simule() -> None:
     fichier = RACINE / "tests" / "unit" / "test_llm_client.py"
     assert fichier.is_file(), "tests/unit/test_llm_client.py est demandé par le ticket"
     assert "MockTransport" in fichier.read_text(encoding="utf-8")
+
+
+# --- Contrat, hors critères numérotés ---------------------------------------
+# Forme des réponses de LM Studio avec Qwen3.8, relevée le 24.11.2026 :
+# raisonnement dans un champ séparé, contenu précédé de deux retours à la ligne
+# (specs/00 §4.2 et §4.3, specs/04 §3).
+
+
+def reponse_avec_raisonnement(contenu: str) -> httpx.Response:
+    corps = reponse_du_serveur(contenu)
+    corps["choices"][0]["message"]["reasoning_content"] = "Je réfléchis avant de répondre."
+    return httpx.Response(200, json=corps)
+
+
+def test_contrat_seul_le_contenu_est_lu_sans_ses_espaces() -> None:
+    serveur = FauxServeur(reponse_avec_raisonnement("\n\nBonjour"))
+    resultat = client(serveur).complete([message("user", "Dis bonjour.")])
+    assert resultat.text == "Bonjour"
+
+
+def test_contrat_json_precede_de_retours_a_la_ligne_valide_du_premier_coup() -> None:
+    serveur = FauxServeur(reponse_avec_raisonnement('\n\n{"montant_total": 42, "ok": true}'))
+    resultat = client(serveur).complete([message("user", "Donne le verdict.")], schema=Verdict)
+    assert isinstance(resultat.parsed, Verdict)
+    assert len(serveur.requetes) == 1
+
+
+def test_contrat_corps_sans_champ_superflu() -> None:
+    serveur = FauxServeur('{"montant_total": 1, "ok": true}')
+    client(serveur).complete([message("user", "Donne le verdict.")], schema=Verdict)
+    assert set(serveur.corps()) == {"model", "messages", "temperature"}
