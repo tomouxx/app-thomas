@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block titre %}Journal — Cabinet{% endblock %}
+
+{% block contenu %}
+<h1>Journal des exécutions</h1>
+<p class="aide">Les 100 dernières exécutions d'agent, la plus récente en premier.</p>
+<table>
+  <thead>
+    <tr>
+      <th scope="col">Agent</th>
+      <th scope="col">Cible</th>
+      <th scope="col">État</th>
+      <th scope="col">Début</th>
+      <th scope="col">Durée</th>
+      <th scope="col">Modèle</th>
+      <th scope="col">Tokens</th>
+      <th scope="col">Erreur</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for execution in executions %}
+      <tr>
+        <td>{{ execution.agent }}</td>
+        <td>{{ execution.target_ref }}</td>
+        <td>{{ execution.status }}</td>
+        <td>{{ execution.started_at.strftime('%d.%m.%Y %H:%M') }}</td>
+        <td>
+          {% if execution.ended_at %}
+            {{ (execution.ended_at - execution.started_at).total_seconds() | round(0) | int }} s
+          {% else %}
+            en cours
+          {% endif %}
+        </td>
+        <td>{% if execution.model %}{{ execution.model }}{% endif %}</td>
+        <td>
+          {% if execution.prompt_tokens is not none or execution.completion_tokens is not none %}
+            {{ execution.prompt_tokens }} / {{ execution.completion_tokens }}
+          {% endif %}
+        </td>
+        <td>{% if execution.error %}{{ execution.error }}{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="8">Aucune exécution enregistrée.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

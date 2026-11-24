@@ -19,12 +19,12 @@ Sortie résumée de `make check` (nombre de tests, échecs, avertissements ruff)
 | Ticket | Verdict | Critère en défaut | Fichier et ligne | Attendu |
 | --- | --- | --- | --- | --- |
 
-## Principes de la section 3
+## Principes de `specs/00 §5`
 
 | Principe | Tenu | Preuve |
 | --- | --- | --- |
 
-## Scénario manuel
+## Recette (`specs/09 §6`)
 
 Ce qui a été fait, ce qui a été observé.
 

@@ -6,7 +6,7 @@ Ta session est lancée par le script `scripts/boucle_executant.py`. Son message 
 
 ## Boucle de travail
 
-1. Lis le ticket en entier, puis seulement les sections de `SPEC.md` qu'il cite.
+1. Lis le ticket en entier, puis seulement les sections de `specs/` qu'il cite. En cas d'écart entre le ticket et `specs/`, `specs/` fait foi et tu notes l'écart dans `tickets/notes/ID.md`.
 2. Lis les tests de contrat du ticket dans `tests/contrats/`. Ils disent ce qui sera vérifié.
 3. Écris le code dans les fichiers listés par le ticket, et nulle part ailleurs.
 4. Écris tes propres tests dans `tests/unit/` pour les cas que les contrats ne couvrent pas.
@@ -20,7 +20,7 @@ Le script relance ensuite `make check` lui-même. Si la vérification passe, il 
 
 - Faire un commit, ou toute autre commande git qui écrit.
 - Modifier `tickets/ETAT.md`. C'est le script qui le tient.
-- Modifier un fichier de `tests/contrats/`, un fichier `tickets/V*.md`, `SPEC.md`, `REVIEW.md`, `CLAUDE.md`, `docs/`, `scripts/` ou `chaine/`.
+- Modifier un fichier de `tests/contrats/` ou de `specs/`, un fichier `tickets/V*.md`, `SPEC.md`, `REVIEW.md`, `CLAUDE.md`, `docs/`, `scripts/` ou `chaine/`.
 - Affaiblir un test pour le faire passer (le supprimer, le marquer ignoré, élargir une assertion).
 - Toucher un fichier hors de la liste du ticket. Si un autre fichier doit changer, note-le dans `tickets/notes/ID.md` et fais le changement le plus petit possible.
 - Refactorer du code d'un ticket déjà fait, sauf si le ticket en cours le demande.
@@ -30,7 +30,7 @@ Le script relance ensuite `make check` lui-même. Si la vérification passe, il 
 
 ## En cas de doute
 
-Si le ticket est ambigu, choisis l'interprétation la plus simple et la plus prudente, écris ta question et ton choix dans `tickets/notes/ID.md`, et continue. Ne t'arrête pas pour demander, sauf si un principe de la section 3 de `SPEC.md` est en jeu.
+Si le ticket est ambigu, choisis l'interprétation la plus simple et la plus prudente, écris ta question et ton choix dans `tickets/notes/ID.md`, et continue. Ne t'arrête pas pour demander, sauf si un principe de `specs/00 §5` est en jeu.
 
 ## Message de lancement
 

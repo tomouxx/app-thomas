@@ -1,6 +1,6 @@
 # Chaîne de développement
 
-Ce document décrit comment faire travailler ensemble le modèle local, Claude Code et le relecteur. Tout ce qui est écrit ici est une proposition à éprouver en vague 0. L'architecte n'a rien testé. Ce que le relecteur a installé et réglé sur la machine de Thomas le 24.11.2026 est décrit dans `docs/REPRISE.md`.
+Ce document décrit comment faire travailler ensemble le modèle local, Claude Code et le relecteur. Tout ce qui est écrit ici est une proposition à éprouver en vague 0. Ce qui a été mesuré le 24.11.2026 est en `specs/00 §4.1` à `§4.5`. Ce que le relecteur a installé et réglé sur la machine de Thomas le 24.11.2026 est décrit dans `docs/REPRISE.md`.
 
 ## Les quatre rôles
 
@@ -15,7 +15,7 @@ Ce document décrit comment faire travailler ensemble le modèle local, Claude C
 
 Trois processus, tous liés à l'adresse de bouclage.
 
-1. Le serveur du modèle, compatible avec l'API de complétion de conversation d'OpenAI, sur le port 8080. Sur la machine de Thomas c'est LM Studio, qui sert la conversion MLX 6 bits de Qwen3.8-27B sous l'identifiant `qwen3.8-27b`. D'autres serveurs conviennent (`mlx_lm.server --model <dépôt du modèle>`, llama.cpp). Si tu veux la lecture d'images pour le ticket V3-03, choisis un serveur qui l'accepte et vérifie-le en vague 0.
+1. Le serveur du modèle, compatible avec l'API de complétion de conversation d'OpenAI, sur le port 8080. Sur la machine de Thomas c'est LM Studio, qui sert la conversion MLX 6 bits de Qwen3.8-27B sous l'identifiant `qwen3.8-27b`. D'autres serveurs conviennent (`mlx_lm.server --model <dépôt du modèle>`, llama.cpp). LM Studio accepte les images avec ce modèle, vérifié le 24.11.2026. Avec un autre serveur, vérifie-le avant le ticket V3-03.
 2. La passerelle LiteLLM sur le port 4000, lancée avec `litellm --config chaine/litellm.config.yaml --host 127.0.0.1 --port 4000`. Elle traduit le format de messages attendu par Claude Code vers le serveur du modèle.
 3. Claude Code côté exécutant, lancé par `scripts/boucle_executant.py`, une session non interactive par ticket. Le script fixe `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_MODEL` et un répertoire de réglages séparé pour ces sessions seulement.
 
@@ -55,5 +55,5 @@ Le relecteur est un modèle distant. Tout ce qu'il lit quitte la machine. Il ne 
 
 - Connexion de Claude Code à une passerelle : https://code.claude.com/docs/en/llm-gateway-connect.md
 - Claude Code avec LiteLLM : https://docs.litellm.ai/docs/proxy/client_setup/claude_code
-- Fiche de la conversion MLX de Qwen3.8-27B : https://huggingface.co/zherebetskyy/Qwen3.8-27B-6bit-mlx
+- Fiche de la conversion MLX de Qwen3.8-27B servie par LM Studio : https://huggingface.co/lmstudio-community/Qwen3.8-27B-MLX-6bit
 - Guide Unsloth pour Qwen3.8 : https://unsloth.ai/docs/models/qwen3.8.md

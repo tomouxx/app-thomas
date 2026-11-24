@@ -39,8 +39,10 @@ Rien de tout cela n'est dans le dépôt. Le dépôt ne contient que la configura
 scripts/chaine.sh demarrer                 # modèle sur 8080, passerelle sur 4000
 nohup python3 scripts/suivi.py >/dev/null 2>&1 &
 git switch vague-N                         # la phase A du relecteur doit être faite
-nohup python3 scripts/boucle_executant.py N > .chaine/boucle.log 2>&1 &
+nohup caffeinate -i python3 scripts/boucle_executant.py N >> .chaine/boucle.log 2>&1 &
 ```
+
+`caffeinate -i` empêche la mise en veille tant que la boucle tourne. Il ne protège ni d'un capot fermé ni d'un redémarrage : dans ces deux cas la boucle et les serveurs s'arrêtent, et il faut reprendre comme en section 6. Une vague dure plusieurs heures, mieux vaut brancher la machine au secteur.
 
 La boucle refuse de démarrer si un prérequis manque et dit lequel : `python3` en 3.12 ou plus, commande `claude`, identité git, branche `vague-N`, étiquette `vague-N-tests`, ports 8080 et 4000, arbre de travail propre.
 
@@ -83,6 +85,7 @@ Le relecteur lance la phase B avec `CABINET_CONTRATS=tous make check`, pour que 
 - Reprendre en repartant du dernier commit : `python3 scripts/boucle_executant.py N --nettoyer`. Les modifications vont dans `git stash`.
 - Rejouer un ticket bloqué après un réglage de la chaîne : `python3 scripts/boucle_executant.py --remettre ID`, commit de `tickets/ETAT.md`, puis relance de la boucle.
 - Arrêter les serveurs : `scripts/chaine.sh arreter`.
+- Après un redémarrage de la machine : `scripts/chaine.sh demarrer`, relance de `scripts/suivi.py`, puis reprise de la boucle avec `--nettoyer`. La session coupée ne compte pas comme une tentative si `tickets/ETAT.md` revient à son dernier commit, ce que fait `--nettoyer`.
 
 ## 7. Quand la chaîne coince
 
@@ -107,12 +110,28 @@ python3 scripts/boucle_executant.py --intervention "ce qui a été changé et po
 
 Les interventions de Thomas se notent de la même façon, avec `--auteur Thomas` (valeur par défaut).
 
-## 8. Mesures de la vague 0
+## 8. Raisonnement du modèle et durée des sessions
 
-Le rapport `revues/vague-0.md` reprend les mesures de `PLAN_VAGUES.md` : tickets terminés sans aide, interventions, tickets bloqués, durée. La page de suivi les calcule à partir du journal. Un ticket « terminé sans aide » est un ticket « fait » sans intervention entre son premier lancement et son commit.
+Qwen3.8 raisonne par défaut au niveau le plus élevé (`xhigh` dans son gabarit de conversation). LM Studio 0.4.15 ne transmet ni `reasoning_effort` ni `chat_template_kwargs` à ce modèle : les essais du 24.11.2026 n'ont montré aucun effet, et l'API native répond que le modèle n'expose pas de réglage de raisonnement. Un seul tour peut donc dépenser plus de 10 000 tokens de raisonnement, soit un quart d'heure à 14 tokens par seconde.
 
-Seuil proposé par `PLAN_VAGUES.md` : trois tickets terminés et deux interventions de Thomas au plus.
+La boucle s'y adapte sans toucher au modèle : 120 minutes par session, 32 000 tokens de sortie par tour, et lecture de `scripts/`, `chaine/` et `revues/` refusée à l'exécutant. Pour baisser le raisonnement, il faudrait un serveur qui transmet les arguments du gabarit (`mlx_lm.server` ou llama.cpp avec `reasoning_effort` à `medium`).
 
-## 9. Dépôt distant
+## 9. Mesures de la vague 0
+
+Le rapport `revues/vague-0.md` reprend les mesures de `specs/09 §6.1` : tickets terminés sans aide, interventions, tickets bloqués, durée. La page de suivi les calcule à partir du journal. Un ticket « terminé sans aide » est un ticket « fait » sans intervention entre son premier lancement et son commit.
+
+Seuil de `specs/09 §6.1` : trois tickets terminés et deux interventions de Thomas au plus.
+
+## 10. Après une révision de la spécification
+
+`specs/`, les tickets et les tests de contrat sont des fichiers protégés : `scripts/verifier_garde.sh N` compare leur état à l'étiquette `vague-N-tests`. Quand l'architecte révise la spécification entre deux lancements, comme le 24.11.2026 sur la branche `specs`, il faut dans cet ordre :
+
+1. Faire entrer la révision dans la branche `vague-N`, par fusion de la branche qui la porte.
+2. Refaire la phase A du relecteur si un contrat a changé, et relancer ses tests avec `CABINET_CONTRATS=tous`.
+3. Reposer l'étiquette `vague-N-tests` sur le nouveau commit de tests.
+
+Sans ces trois gestes, la garde signale à tort les fichiers révisés comme touchés par l'exécutant.
+
+## 11. Dépôt distant
 
 Le dépôt est poussé sur `https://github.com/tomouxx/app-thomas`. Ce dépôt est public. Il ne doit donc contenir que le kit, le code et des données synthétiques, ce qui est déjà la règle du projet.

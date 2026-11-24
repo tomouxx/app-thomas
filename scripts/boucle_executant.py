@@ -44,6 +44,8 @@ JOURNAL = DOSSIER / "journal.jsonl"
 SESSIONS = DOSSIER / "sessions"
 VERIFS = DOSSIER / "verifs"
 FICHIER_PID = DOSSIER / "boucle.pid"
+# Posé par la page de suivi : la boucle s'arrête avant le ticket suivant.
+FICHIER_PAUSE = DOSSIER / "pause"
 ETAT = RACINE / "tickets" / "ETAT.md"
 ETAT_REL = "tickets/ETAT.md"
 
@@ -57,6 +59,7 @@ RE_ID = re.compile(r"V\d+-(?:\d+|C\d+)")
 # après chaque session et note l'écart dans le journal.
 PROTEGES = (
     "tests/contrats/",
+    "specs/",
     "docs/",
     "scripts/",
     "chaine/",
@@ -94,9 +97,13 @@ AUTORISES = [
     "Bash(git diff)",
     "Bash(git diff *)",
     "Bash(git log *)",
+    "Bash(git ls-files)",
+    "Bash(git ls-files *)",
+    "Bash(git check-ignore *)",
 ]
 INTERDITS = [
     "Edit(tests/contrats/**)",
+    "Edit(specs/**)",
     "Edit(docs/**)",
     "Edit(scripts/**)",
     "Edit(chaine/**)",
@@ -106,11 +113,23 @@ INTERDITS = [
     "Edit(CLAUDE.md)",
     "Edit(tickets/V*.md)",
     "Edit(tickets/ETAT.md)",
+    # Rien hors du dépôt : ni fichier temporaire, ni répertoire de données réel.
+    "Edit(//tmp/**)",
+    "Edit(//private/tmp/**)",
+    "Edit(//var/folders/**)",
+    "Edit(~/Cabinet/**)",
+    "Read(~/Cabinet/**)",
     "Bash(git commit *)",
     "Bash(git push *)",
     "Bash(git reset *)",
     "Bash(git checkout *)",
     "Bash(git stash *)",
+    # Fichiers de la chaîne : inutiles à l'exécutant et coûteux en contexte.
+    "Read(specs/*.html)",
+    "Read(scripts/**)",
+    "Read(chaine/**)",
+    "Read(revues/**)",
+    "Read(.chaine/**)",
 ]
 
 _session_en_cours: subprocess.Popen | None = None
@@ -336,7 +355,9 @@ def environnement(ticket: str, modele: str | None = None) -> dict[str, str]:
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
                 "DISABLE_TELEMETRY": "1",
                 "DISABLE_AUTOUPDATER": "1",
-                "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16000",
+                # Qwen3.8 raisonne longuement avant d'agir : un plafond bas
+                # coupe le tour avant le premier appel d'outil.
+                "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "32000",
                 "API_TIMEOUT_MS": "900000",
             }
         )
@@ -362,6 +383,9 @@ def consigne(ticket: dict, tentative: int, echec: str | None) -> str:
         "tests dans `tests/unit/`. Lance ensuite `make check` et corrige "
         "jusqu'à ce qu'il passe. `make check` doit aussi exécuter les tests "
         "de contrat du ticket.\n"
+        "Tu n'as pas à lire `scripts/`, `chaine/`, `revues/` ni les autres "
+        "tickets : ils ne te concernent pas. Avance fichier par fichier, "
+        "sans tout planifier d'avance.\n"
         "Ne fais pas de commit et ne modifie pas `tickets/ETAT.md` : le script "
         "qui t'a lancé relance `make check` lui-même, fait le commit et tient "
         "l'état. Quand `make check` passe, arrête-toi et résume en cinq lignes "
@@ -458,6 +482,8 @@ def lancer_session(ticket: dict, tentative: int, echec: str | None, args) -> dic
             "--output-format",
             "stream-json",
             "--verbose",
+            # Flux mot à mot : `scripts/suivi.py` affiche la pensée de l'exécutant en direct.
+            "--include-partial-messages",
             "--permission-mode",
             "acceptEdits",
             "--permission-prompts",
@@ -619,7 +645,14 @@ def verifier(ticket: dict, tentative: int, etat_attendu: str) -> tuple[bool, str
     maison = Path.home() / "Cabinet"
     maison_avant = maison.exists()
     code, sortie = lancer_make(
-        "check", ident, 900, {"CABINET_RAPPORT_CONTRATS": str(rapport)}
+        "check",
+        ident,
+        900,
+        {
+            "CABINET_RAPPORT_CONTRATS": str(rapport),
+            # Résultat test par test, lu par la matrice de couverture de la page de suivi.
+            "PYTEST_ADDOPTS": f"--junitxml={base}-junit.xml",
+        },
     )
     Path(f"{base}-check.txt").write_text(sortie, encoding="utf-8")
     if maison.exists() and not maison_avant:
@@ -788,13 +821,23 @@ def boucle(args) -> int:
     signal.signal(signal.SIGTERM, interrompre)
     signal.signal(signal.SIGINT, interrompre)
     debut = time.monotonic()
-    noter("boucle_debut", vague=vague, modele=args.modele, pid=os.getpid())
+    noter(
+        "boucle_debut",
+        vague=vague,
+        modele=args.modele,
+        pid=os.getpid(),
+        delai_session=args.delai_session,
+    )
     try:
         while True:
             prets, sautes = a_traiter(vague, args.ticket)
             if not prets:
                 for t in sautes:
                     noter("saute", ticket=t["id"], motif="dépendance non faite", depend=t["depend"])
+                break
+            if FICHIER_PAUSE.exists():
+                FICHIER_PAUSE.unlink()
+                noter("boucle_pause", vague=vague, prochain=prets[0]["id"])
                 break
             traiter(prets[0], args)
     except Exception as exc:  # la boucle s'arrête, l'erreur reste dans le journal
@@ -815,7 +858,7 @@ def main() -> int:
     analyseur.add_argument("vague", nargs="?", type=int, help="numéro de la vague")
     analyseur.add_argument("--ticket", help="ne traiter que ce ticket")
     analyseur.add_argument("--modele", default="qwen-local", help="nom du modèle à la passerelle")
-    analyseur.add_argument("--delai-session", type=int, default=45, help="minutes par session")
+    analyseur.add_argument("--delai-session", type=int, default=120, help="minutes par session")
     analyseur.add_argument("--nettoyer", action="store_true", help="met de côté un arbre de travail non propre")
     analyseur.add_argument("--garder", action="store_true", help="reprend avec l'arbre de travail tel qu'il est")
     analyseur.add_argument("--executant-factice", metavar="CMD", help="commande shell lancée à la place de claude (essais de la boucle)")

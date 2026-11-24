@@ -4,7 +4,7 @@
 set -euo pipefail
 N="${1:?numéro de vague manquant}"
 TAG="vague-${N}-tests"
-PROTEGES=(tests/contrats SPEC.md REVIEW.md CLAUDE.md docs)
+PROTEGES=(tests/contrats specs SPEC.md REVIEW.md CLAUDE.md docs)
 CHANGES="$(git diff --name-only "${TAG}"..HEAD -- "${PROTEGES[@]}" || true)"
 TICKETS="$(git diff --name-only "${TAG}"..HEAD -- tickets | grep -E '^tickets/V[0-9]+-[0-9]+\.md$' || true)"
 if [ -n "${CHANGES}${TICKETS}" ]; then
