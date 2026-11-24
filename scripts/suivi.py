@@ -13,6 +13,7 @@ Usage :
 
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import html
 import json
@@ -41,7 +42,7 @@ def lire_tickets() -> list[dict]:
         cellules = [c.strip() for c in ligne.strip().strip("|").split("|")]
         if len(cellules) == 6 and RE_ID.fullmatch(cellules[0]):
             tickets.append(
-                dict(zip(("id", "titre", "depend", "etat", "tentatives", "commit"), cellules))
+                dict(zip(("id", "titre", "depend", "etat", "tentatives", "commit"), cellules, strict=True))
             )
     return tickets
 
@@ -252,8 +253,10 @@ def page() -> str:
         "<meta http-equiv='refresh' content='5'>",
         f"<title>Suivi de la chaîne</title><style>{STYLE}</style></head><body><main>",
         "<h1>Suivi de la chaîne Cabinet</h1>",
-        f"<p class='note'>Branche <code>{e(etat['branche'])}</code>. "
-        f"Page générée à {e(etat['genere'][11:19])}, rechargée toutes les 5 secondes.</p>",
+        (
+            f"<p class='note'>Branche <code>{e(etat['branche'])}</code>. "
+            f"Page générée à {e(etat['genere'][11:19])}, rechargée toutes les 5 secondes.</p>"
+        ),
         "<p>",
         pastille("modèle 8080 " + ("répond" if chaine["modele_8080"] else "muet"),
                  "ok" if chaine["modele_8080"] else "ko"),
@@ -337,7 +340,7 @@ def page() -> str:
 
 
 class Gestionnaire(BaseHTTPRequestHandler):
-    def do_GET(self) -> None:  # noqa: N802 (nom imposé par http.server)
+    def do_GET(self) -> None:
         try:
             if self.path.split("?")[0] == "/etat.json":
                 corps = json.dumps(construire_etat(), ensure_ascii=False).encode()
@@ -347,7 +350,8 @@ class Gestionnaire(BaseHTTPRequestHandler):
             else:
                 self.send_error(404)
                 return
-        except Exception as exc:  # la page ne doit pas tomber sur un journal abîmé
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            # la page ne doit pas tomber sur un journal abîmé
             corps = f"Erreur de lecture : {exc}".encode()
             genre = "text/plain; charset=utf-8"
         self.send_response(200)
@@ -368,10 +372,8 @@ def main() -> int:
         print(f"Port {PORT} indisponible : {exc}", file=sys.stderr)
         return 1
     print(f"Suivi sur http://{ADRESSE}:{PORT}/", flush=True)
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         serveur.serve_forever()
-    except KeyboardInterrupt:
-        pass
     return 0
 
 

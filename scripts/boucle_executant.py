@@ -48,6 +48,7 @@ ETAT = RACINE / "tickets" / "ETAT.md"
 ETAT_REL = "tickets/ETAT.md"
 
 MAX_TENTATIVES = 3
+PYTHON_MINIMAL = (3, 12)
 PORT_MODELE = 8080
 PORT_PASSERELLE = 4000
 RE_ID = re.compile(r"V\d+-(?:\d+|C\d+)")
@@ -260,8 +261,8 @@ def ecrire_ticket(ident: str, **changements: object) -> None:
 def fichiers_du_ticket(ident: str) -> list[str]:
     """Liste « Fichiers à créer ou modifier » du ticket."""
     texte = (RACINE / "tickets" / f"{ident}.md").read_text(encoding="utf-8")
-    bloc = re.search(r"## Fichiers à créer ou modifier\n(.*?)(?:\n## |\Z)", texte, re.S)
-    return re.findall(r"^- `([^`]+)`", bloc.group(1), re.M) if bloc else []
+    bloc = re.search(r"## Fichiers à créer ou modifier\n(.*?)(?:\n## |\Z)", texte, re.DOTALL)
+    return re.findall(r"^- `([^`]+)`", bloc.group(1), re.MULTILINE) if bloc else []
 
 
 # --------------------------------------------------------------------------
@@ -276,7 +277,7 @@ def port_ouvert(port: int) -> bool:
 
 def verifier_prerequis(vague: int, factice: bool) -> list[str]:
     manques: list[str] = []
-    if sys.version_info < (3, 12):
+    if sys.version_info[:2] < PYTHON_MINIMAL:
         manques.append(f"python3 est en {sys.version.split()[0]}, il faut 3.12 ou plus")
     if not git("config", "user.name", verifier=False) or not git(
         "config", "user.email", verifier=False
@@ -685,8 +686,10 @@ def bloquer(ticket: dict, tentative: int, echecs: list[str]) -> None:
     corps = [
         f"# {ident} · bloqué",
         "",
-        f"Note écrite par `scripts/boucle_executant.py` le {maintenant()}, après "
-        f"{tentative} tentatives. Elle rapporte des faits, pas une analyse.",
+        (
+            f"Note écrite par `scripts/boucle_executant.py` le {maintenant()}, après "
+            f"{tentative} tentatives. Elle rapporte des faits, pas une analyse."
+        ),
         "",
     ]
     if reserve:
