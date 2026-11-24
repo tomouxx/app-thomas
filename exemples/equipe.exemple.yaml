@@ -1,0 +1,16 @@
+# Référentiel d'équipe. Exemple avec des personnes fictives.
+# Le vrai fichier va dans $CABINET_HOME/config/equipe.yaml, jamais dans le dépôt.
+people:
+  - name: Camille Exemple
+    email: camille.exemple@exemple.test
+    fte: 1.0
+    expected_codes: [PROJ-A, PROJ-B]
+    absences: []
+  - name: Sacha Modele
+    email: sacha.modele@exemple.test
+    fte: 0.8
+    expected_codes: [PROJ-A]
+    absences:
+      - from: 2026-11-09
+        to: 2026-11-10
+holidays: []

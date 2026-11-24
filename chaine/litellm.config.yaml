@@ -1,0 +1,8 @@
+# Passerelle locale entre Claude Code et le serveur du modèle.
+# Exemple à valider en vague 0. Voir docs/CHAINE.md.
+model_list:
+  - model_name: qwen-local
+    litellm_params:
+      model: openai/qwen3.8-27b        # nom servi par ton serveur local
+      api_base: http://127.0.0.1:8080/v1
+      api_key: local                    # valeur sans secret
