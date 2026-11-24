@@ -107,12 +107,18 @@ python3 scripts/boucle_executant.py --intervention "ce qui a été changé et po
 
 Les interventions de Thomas se notent de la même façon, avec `--auteur Thomas` (valeur par défaut).
 
-## 8. Mesures de la vague 0
+## 8. Raisonnement du modèle et durée des sessions
+
+Qwen3.8 raisonne par défaut au niveau le plus élevé (`xhigh` dans son gabarit de conversation). LM Studio 0.4.15 ne transmet ni `reasoning_effort` ni `chat_template_kwargs` à ce modèle : les essais du 24.11.2026 n'ont montré aucun effet, et l'API native répond que le modèle n'expose pas de réglage de raisonnement. Un seul tour peut donc dépenser plus de 10 000 tokens de raisonnement, soit un quart d'heure à 14 tokens par seconde.
+
+La boucle s'y adapte sans toucher au modèle : 120 minutes par session, 32 000 tokens de sortie par tour, et lecture de `scripts/`, `chaine/` et `revues/` refusée à l'exécutant. Pour baisser le raisonnement, il faudrait un serveur qui transmet les arguments du gabarit (`mlx_lm.server` ou llama.cpp avec `reasoning_effort` à `medium`).
+
+## 9. Mesures de la vague 0
 
 Le rapport `revues/vague-0.md` reprend les mesures de `PLAN_VAGUES.md` : tickets terminés sans aide, interventions, tickets bloqués, durée. La page de suivi les calcule à partir du journal. Un ticket « terminé sans aide » est un ticket « fait » sans intervention entre son premier lancement et son commit.
 
 Seuil proposé par `PLAN_VAGUES.md` : trois tickets terminés et deux interventions de Thomas au plus.
 
-## 9. Dépôt distant
+## 10. Dépôt distant
 
 Le dépôt est poussé sur `https://github.com/tomouxx/app-thomas`. Ce dépôt est public. Il ne doit donc contenir que le kit, le code et des données synthétiques, ce qui est déjà la règle du projet.
