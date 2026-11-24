@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cabinet, plan de développement</title>
+<style>
+:root{
+  --bg0:#f4f6f8; --surface0:#fff; --ink0:#16202b; --muted0:#56626f; --line0:#c6ced6;
+  --z10:#9a5a0c; --z20:#0a5aa8; --z30:#5b4bb5; --new0:#0f7a55; --warn0:#8a5a00;
+  --f-display:system-ui,sans-serif; --f-body:system-ui,sans-serif; --f-mono:ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg0:#11161c; --surface0:#1a212a; --ink0:#e6ebf0; --muted0:#9aa7b4; --line0:#34404c;
+    --z10:#e0a458; --z20:#6db3f2; --z30:#a99cf0; --new0:#4fc79a; --warn0:#e0b24f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg0:#11161c; --surface0:#1a212a; --ink0:#e6ebf0; --muted0:#9aa7b4; --line0:#34404c;
+  --z10:#e0a458; --z20:#6db3f2; --z30:#a99cf0; --new0:#4fc79a; --warn0:#e0b24f;
+}
+:root{
+  --bg:var(--background,var(--bg0)); --surface:var(--card,var(--surface0));
+  --ink:var(--foreground,var(--ink0)); --soft:var(--muted-foreground,var(--muted0));
+  --line:var(--border,var(--line0));
+  --z1:var(--chart-4,var(--z10)); --z2:var(--info,var(--z20)); --z3:var(--chart-5,var(--z30));
+  --new:var(--success,var(--new0)); --warn:var(--warning,var(--warn0));
+  --z1-wash:color-mix(in srgb,var(--z1) 11%,var(--surface));
+  --z2-wash:color-mix(in srgb,var(--z2) 11%,var(--surface));
+  --z3-wash:color-mix(in srgb,var(--z3) 11%,var(--surface));
+  --new-wash:color-mix(in srgb,var(--new) 12%,var(--surface));
+  --warn-wash:color-mix(in srgb,var(--warn) 14%,var(--surface));
+}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px 48px;background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.embed body{padding:0;background:none}
+main{max-width:1000px;margin:0 auto}
+p,li{max-width:72ch}
+h1{font:600 30px/1.2 var(--f-display);margin:6px 0 10px}
+h2{font:600 21px/1.25 var(--f-display);margin:4px 0 12px}
+h3{font:600 15px/1.3 var(--f-display);margin:0 0 6px}
+code,.mono{font-family:var(--f-mono);font-size:.92em}
+.over{font:12px var(--f-mono);color:var(--soft);letter-spacing:.04em;text-transform:uppercase}
+.lead{font-size:17px;color:var(--ink)}
+.meta{color:var(--soft);font-size:13.5px}
+section{margin-top:44px}
+.num{font:12px var(--f-mono);color:var(--soft);display:block;margin-bottom:2px}
+nav{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 0;margin-top:20px;display:flex;gap:14px;flex-wrap:wrap;font-size:13px}
+.embed nav{position:static;background:none}
+nav a{color:var(--soft);text-decoration:none} nav a:hover,nav a:focus{color:var(--ink);text-decoration:underline}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--soft);margin-top:12px;align-items:center}
+.sw{display:inline-block;width:22px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1.4px solid var(--line);background:var(--surface)}
+.sw.z1{border-color:var(--z1);background:var(--z1-wash)} .sw.z2{border-color:var(--z2);background:var(--z2-wash)} .sw.z3{border-color:var(--z3);background:var(--z3-wash)}
+.sw.done{border-color:var(--new);border-width:2px} .sw.wait{border-color:var(--warn);border-style:dashed}
+.tag{display:inline-block;font:11px var(--f-mono);padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--soft);vertical-align:2px;margin-left:6px;white-space:nowrap}
+.tag.ok{border-color:var(--new);color:var(--new)} .tag.warn{border-color:var(--warn);color:var(--warn)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.tile b{display:block;font:600 26px/1.1 var(--f-display)} .tile span{font-size:13px;color:var(--soft)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;padding:12px 14px}
+.card.z1{border-left-color:var(--z1)} .card.z2{border-left-color:var(--z2)} .card.z3{border-left-color:var(--z3)}
+.card .who{font:11.5px var(--f-mono);color:var(--soft);text-transform:uppercase;letter-spacing:.04em}
+.card p{margin:4px 0 0;font-size:14px}
+figure{margin:16px 0 0}
+figcaption{font-size:14px;color:var(--soft);margin-top:8px;max-width:72ch}
+.fig-t{font:600 14px var(--f-display);margin-bottom:6px}
+.frame{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px}
+.frame svg{display:block;min-width:760px;width:100%;height:auto}
+#g svg{min-width:620px}
+svg text{font-family:var(--f-body);fill:currentColor}
+.band{stroke-width:1} .band.z1{fill:var(--z1-wash);stroke:var(--z1)} .band.z2{fill:var(--z2-wash);stroke:var(--z2)} .band.z3{fill:var(--z3-wash);stroke:var(--z3)} .band.n{fill:none;stroke:var(--line);stroke-dasharray:4 4}
+.band-t{font:600 11.5px var(--f-mono);letter-spacing:.06em;fill:var(--soft)}
+.box{fill:var(--surface);stroke:var(--line);stroke-width:1.3}
+.box.z1{stroke:var(--z1)} .box.z2{stroke:var(--z2)} .box.z3{stroke:var(--z3)}
+.box.done{stroke:var(--new);stroke-width:2.4} .box.wait{stroke:var(--warn);stroke-dasharray:5 4}
+.bt{font:600 12.5px var(--f-mono)} .bs{font-size:11.5px;fill:var(--soft)}
+.e{fill:none;stroke:var(--soft);stroke-width:1.3;opacity:.75} .ah{fill:var(--soft)}
+.el{font-size:11px;fill:var(--soft)}
+.node{cursor:pointer;outline:none}
+.node:focus-visible .box{stroke-width:3}
+.dim .node:not(.on){opacity:.22} .dim .e:not(.on){opacity:.08} .dim .e.on{stroke:var(--ink);opacity:1;stroke-width:2}
+.detail{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-height:118px;font-size:14px}
+.detail h3 .mono{color:var(--soft);margin-right:6px}
+.detail dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:6px 0 0} .detail dt{color:var(--soft)} .detail dd{margin:0}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;font-size:12.5px;color:var(--soft)} tr:last-child td{border-bottom:0}
+.tw{overflow-x:auto}
+.bar{position:relative;height:14px;background:color-mix(in srgb,var(--line) 45%,transparent);border-radius:3px;min-width:150px}
+.bar i{position:absolute;top:0;bottom:0;border-radius:3px}
+.bar .lo{background:var(--z1)} .bar .hi{background:var(--z1);opacity:.35}
+.bar .rv{background:var(--z2)}
+.l0 .lo{left:0;width:4.2%} .l0 .rv{left:4.2%;width:4.2%}
+.l1 .lo{left:8.4%;width:8.3%} .l1 .hi{left:16.7%;width:8.3%} .l1 .rv{left:25%;width:8.3%}
+.l2 .lo{left:33.3%;width:16.7%} .l2 .hi{left:50%;width:8.3%} .l2 .rv{left:58.3%;width:12.5%}
+.l3 .lo{left:70.8%;width:8.3%} .l3 .hi{left:79.1%;width:8.3%} .l3 .rv{left:87.4%;width:8.3%}
+.sw.f1{background:var(--z1);border-color:var(--z1)} .sw.f2{background:var(--z2);border-color:var(--z2)} .sw.fh{opacity:.35} .ml{margin-left:10px}
+.tag.t0{margin-left:0} .mt8{margin-top:8px} .mt22{margin-top:22px}
+.box-note{border-radius:8px;padding:14px 16px;margin-top:14px;border:1px solid}
+.keep{background:var(--new-wash);border-color:var(--new)} .risk{background:var(--warn-wash);border-color:var(--warn)}
+.box-note h3{margin-bottom:6px} .box-note ul,.box-note ol{margin:6px 0 0;padding-left:20px}
+.grid2{display:grid;grid-template-columns:minmax(150px,1fr) 2.2fr;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:14px}
+.grid2>div{padding:9px 12px;border-bottom:1px solid var(--line)} .grid2>div:nth-last-child(-n+2){border-bottom:0}
+.grid2>div:nth-child(odd){font-weight:600}
+ol.q{padding-left:22px} ol.q li{margin-bottom:6px}
+.src{font-size:13.5px;color:var(--soft)} .src li{margin-bottom:3px}
+@media (max-width:520px){h1{font-size:25px} .grid2{grid-template-columns:1fr} .grid2>div:nth-child(odd){border-bottom:0;padding-bottom:0}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="over">Cabinet · version 1 · plan du 24.11.2026 · à relire par Thomas</div>
+  <h1>Plan de développement</h1>
+  <p class="lead">Quatre lots, 27 tâches, de la preuve de la chaîne aux relances d'imputation. Chaque tâche se termine par un critère vérifiable par une commande.</p>
+  <p class="meta">Base de l'analyse : la suite <code>specs/</code> (commit <code>62cae70</code>) et l'état du dépôt. Aucun code d'application n'existe encore, les schémas décrivent donc ce qui est prévu, pas ce qui tourne.</p>
+  <div class="legend" aria-label="Légende">
+    <span><i class="sw z1"></i>exécutant, modèle local</span>
+    <span><i class="sw z2"></i>relecteur, modèle Claude</span>
+    <span><i class="sw z3"></i>Thomas</span>
+    <span><i class="sw"></i>tâche à faire</span>
+    <span><i class="sw done"></i>tâche faite</span>
+    <span><i class="sw wait"></i>attend un élément de Thomas</span>
+    <span><span class="tag t0">spec</span> lu dans la spécification</span>
+    <span><span class="tag ok t0">constaté</span> mesuré le 24.11.2026</span>
+    <span><span class="tag warn t0">à vérifier</span> hypothèse ouverte</span>
+  </div>
+  <nav aria-label="Sections">
+    <a href="#etat">1 État</a><a href="#roles">2 Qui fait quoi</a><a href="#cycle">3 Cycle d'un lot</a>
+    <a href="#graphe">4 Tâches</a><a href="#lots">5 Lots</a><a href="#reserves">6 Réserves</a>
+    <a href="#suite">7 Suite</a><a href="#sources">8 Sources</a>
+  </nav>
+</header>
+
+<section id="etat">
+  <span class="num">1 / état</span>
+  <h2>Où en est le projet</h2>
+  <div class="tiles">
+    <div class="tile"><b>27</b><span>tâches au plan</span></div>
+    <div class="tile"><b>0</b><span>tâche terminée</span></div>
+    <div class="tile"><b>51</b><span>tests de contrat écrits, pour le lot 0</span></div>
+    <div class="tile"><b>8 à 12 j</b><span>estimation, pas un engagement</span></div>
+  </div>
+  <p>La spécification est écrite et attend votre relecture. Le développement est suspendu à votre demande. Trois sessions de l'exécutant ont eu lieu le 24.11.2026 sur la tâche V0-01, toutes interrompues avant le premier <code>make check</code> <span class="tag ok">constaté</span>.</p>
+</section>
+
+<section id="roles">
+  <span class="num">2 / qui fait quoi</span>
+  <h2>Quatre rôles, jamais sur les mêmes fichiers</h2>
+  <div class="cards">
+    <div class="card z3"><div class="who">Thomas · commanditaire</div><p>Lance les lots, fournit ce qui manque (agenda ICS, échantillon d'imputations), joue la recette et décide de l'entrée dans <code>main</code>.</p></div>
+    <div class="card z2"><div class="who">Architecte · Claude</div><p>Écrit et révise <code>specs/</code> et les tickets entre deux lots. N'écrit pas de code.</p></div>
+    <div class="card z2"><div class="who">Relecteur · Claude</div><p>Écrit les tests de contrat avant le lot, règle la chaîne, juge le lot après. N'écrit jamais le code de l'application.</p></div>
+    <div class="card z1"><div class="who">Exécutant · Qwen3.8 27B local</div><p>Écrit le code et ses tests unitaires, une tâche par session, piloté par <code>scripts/boucle_executant.py</code>.</p></div>
+  </div>
+</section>
+
+<section id="cycle">
+  <span class="num">3 / cycle</span>
+  <h2>Le cycle d'un lot</h2>
+  <figure>
+    <div class="fig-t">Du test de contrat à la branche principale <span class="tag">spec docs/CHAINE.md</span></div>
+    <div class="frame">
+      <svg viewBox="0 0 980 190" role="img" aria-label="Le relecteur écrit les tests de contrat, l'exécutant traite chaque tâche en boucle, le relecteur juge le lot, puis Thomas joue la recette et fusionne dans main. Un verdict NO-GO renvoie des tickets de correction à l'exécutant, deux fois au plus.">
+        <defs><marker id="mc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0L10,5L0,10z"/></marker></defs>
+        <rect class="box z2" x="14" y="44" width="170" height="62" rx="8"/><text class="bt" x="99" y="70" text-anchor="middle">Phase A</text><text class="bs" x="99" y="88" text-anchor="middle">tests de contrat, étiquette</text>
+        <rect class="box z1" x="224" y="44" width="200" height="62" rx="8"/><text class="bt" x="324" y="70" text-anchor="middle">Boucle de l'exécutant</text><text class="bs" x="324" y="88" text-anchor="middle">une session par tâche</text>
+        <rect class="box" x="464" y="44" width="150" height="62" rx="8"/><text class="bt" x="539" y="70" text-anchor="middle">make check</text><text class="bs" x="539" y="88" text-anchor="middle">relancé par la boucle</text>
+        <rect class="box z2" x="654" y="44" width="150" height="62" rx="8"/><text class="bt" x="729" y="70" text-anchor="middle">Phase B</text><text class="bs" x="729" y="88" text-anchor="middle">revue, recette, verdict</text>
+        <rect class="box z3" x="844" y="44" width="122" height="62" rx="8"/><text class="bt" x="905" y="70" text-anchor="middle">Recette</text><text class="bs" x="905" y="88" text-anchor="middle">puis fusion</text>
+        <path class="e" d="M184,75 H222" marker-end="url(#mc)"/><path class="e" d="M424,75 H462" marker-end="url(#mc)"/>
+        <path class="e" d="M614,75 H652" marker-end="url(#mc)"/><path class="e" d="M804,75 H842" marker-end="url(#mc)"/>
+        <text class="el" x="824" y="66" text-anchor="middle">GO</text>
+        <path class="e" d="M539,44 C539,10 324,10 324,42" marker-end="url(#mc)"/><text class="el" x="431" y="14" text-anchor="middle">échec : nouvelle session, 3 au plus par tâche</text>
+        <path class="e" d="M729,106 C729,160 324,160 324,108" marker-end="url(#mc)"/><text class="el" x="527" y="172" text-anchor="middle">NO-GO : tickets de correction, 2 cycles au plus</text>
+      </svg>
+    </div>
+    <figcaption>C'est la boucle, et non l'exécutant, qui relance <code>make check</code> et fait le commit. Après trois échecs sur une tâche, elle met le travail de côté et marque la tâche « bloqué ». Le relecteur ne corrige jamais le code lui-même, sinon le lot ne dit plus rien de l'exécutant.</figcaption>
+  </figure>
+</section>
+
+<section id="graphe">
+  <span class="num">4 / tâches</span>
+  <h2>Les 27 tâches et leurs dépendances</h2>
+  <figure>
+    <div class="fig-t">Graphe des tâches par lot <span class="tag">spec 10</span></div>
+    <div class="frame"><div id="g" data-label="Graphe des 27 tâches. Le lot 0 ouvre sur V0-01, le lot 1 pose le socle de V1-01 à V1-08, le lot 2 traite les réunions de V2-01 à V2-09, et le lot 3 traite les imputations de V3-01 à V3-07, à partir de V1-01 et V1-08."></div></div>
+    <div class="detail" id="d" aria-live="polite">Survolez une tâche, ou sélectionnez-la au clavier, pour voir ce qu'elle livre et ce dont elle dépend.</div>
+    <figcaption>Le graphe se lit de haut en bas. Tout passe par V1-01 et V1-02, puis par V1-08 : tant que le pipeline n'existe pas, ni les réunions ni les imputations ne démarrent. Le lot 3 ne dépend que du lot 1. Il vient en dernier parce qu'il attend votre échantillon anonymisé, pas pour une raison technique.</figcaption>
+  </figure>
+</section>
+
+<section id="lots">
+  <span class="num">5 / lots</span>
+  <h2>Ce que livre chaque lot</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Lot</th><th>Ce que vous pouvez faire à la fin</th><th>Ce que vous fournissez avant</th><th>Estimation</th></tr></thead>
+    <tbody>
+      <tr><td><b>0</b><br>Preuve de la chaîne<br><span class="mono">V0-01 à V0-03</span></td><td>Rien d'utile pour vous. L'application répond sur <code>/sante</code>, parle au modèle local et tient son journal. Le lot mesure si l'exécutant termine trois tâches sans aide.</td><td>Serveur du modèle et passerelle allumés</td><td><div class="bar l0" title="1 jour"><i class="lo"></i><i class="rv"></i></div>1 jour</td></tr>
+      <tr><td><b>1</b><br>Socle<br><span class="mono">V1-01 à V1-08</span></td><td>Déposer des fichiers, voir l'agenda de la semaine, rattacher un fichier à une réunion, confirmer le consentement d'un audio, valider un brouillon écrit à la main.</td><td>Rien pour le développement. Un export ICS de votre agenda pour la recette</td><td><div class="bar l1" title="2 à 3 jours"><i class="lo"></i><i class="hi"></i><i class="rv"></i></div>2 à 3 jours</td></tr>
+      <tr><td><b>2</b><br>Réunions<br><span class="mono">V2-01 à V2-09</span></td><td>Obtenir un compte rendu dont chaque décision renvoie à un extrait de la source, le corriger, le valider, suivre les actions, recevoir une fiche avant la réunion suivante.</td><td>L'option <code>audio</code> installée pour la recette</td><td><div class="bar l2" title="3,5 à 4,5 jours"><i class="lo"></i><i class="hi"></i><i class="rv"></i></div>3,5 à 4,5 jours</td></tr>
+      <tr><td><b>3</b><br>Imputations<br><span class="mono">V3-01 à V3-07</span></td><td>Déposer une capture, relire ses lignes, obtenir les anomalies R1 à R4 et un brouillon de relance par personne.</td><td>Un échantillon anonymisé d'écran, les règles R1 à R4 confirmées, le référentiel d'équipe</td><td><div class="bar l3" title="2 à 3 jours"><i class="lo"></i><i class="hi"></i><i class="rv"></i></div>2 à 3 jours</td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta mt8"><i class="sw f1"></i>exécutant, durée basse <i class="sw f1 fh ml"></i>marge <i class="sw f2 ml"></i>relecteur et Thomas. Échelle : 12 jours ouvrés.</p>
+  <p>L'estimation repose sur une seule session interrompue : 24 minutes pour lire la tâche V0-01 et écrire ses sept fichiers <span class="tag ok">constaté</span>. Elle ne compte ni les cycles de correction, ni l'attente de l'échantillon, ni les démarches juridiques.</p>
+  <div class="box-note keep">
+    <h3>À ne pas oublier</h3>
+    <ul>
+      <li>Aucune donnée réelle avant la fin du lot 2. Le premier essai sur vos propres données se fait après sa recette, par vous seul, en commençant par vos notes.</li>
+      <li>Un lot n'entre dans <code>main</code> qu'après un rapport au verdict GO et votre accord.</li>
+      <li>L'application ne produit que des brouillons, à chaque lot. Aucune tâche n'ajoute d'envoi.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="reserves">
+  <span class="num">6 / réserves</span>
+  <h2>Ce qui peut faire bouger le plan</h2>
+  <div class="box-note risk">
+    <h3>Réserves</h3>
+    <ul>
+      <li>La chaîne n'est pas éprouvée <span class="tag warn">à vérifier</span>. Seuil du lot 0 : trois tâches terminées et deux interventions de votre part au plus. En dessous, on change l'outil qui pilote Qwen avant d'aller plus loin, et l'estimation tombe.</li>
+      <li>Le modèle raisonne à chaque appel, sans réglage possible avec LM Studio <span class="tag ok">constaté</span>. Un compte rendu de cinq lignes a pris 77,5 secondes. Le délai de 900 secondes n'a pas été mesuré sur une réunion d'une heure.</li>
+      <li>La structure des écrans d'imputation est inconnue <span class="tag warn">à vérifier</span>. Les tâches V3-02 à V3-07 attendent votre échantillon.</li>
+      <li>La forme d'un transcript Teams en <code>.docx</code> est supposée <span class="tag warn">à vérifier</span>. Elle se vérifie sur un exemple anonymisé avant le lot 2.</li>
+      <li>L'accord des participants à l'enregistrement est un point juridique à faire valider par une personne compétente avant tout usage réel. La case de consentement est une garde technique.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="suite">
+  <span class="num">7 / suite</span>
+  <h2>Avant de relancer le développement</h2>
+  <div class="grid2">
+    <div>Relire la spécification</div><div>Les treize ajouts au kit de <code>specs/00 §4.15</code> et les arbitrages de <code>§4.12</code> sont à vous de contester. <span class="tag warn">à trancher</span></div>
+    <div>Faire entrer la révision</div><div>Fusionner la branche <code>specs</code> dans <code>vague-0</code>, puis reposer l'étiquette <code>vague-0-tests</code> (<code>docs/REPRISE.md</code>, section 10).</div>
+    <div>Alimenter la machine</div><div>La brancher au secteur. Une vague dure plusieurs heures, et la machine tournait sur batterie le 24.11.2026.</div>
+    <div>Lancer</div><div><code>scripts/chaine.sh demarrer</code>, <code>python3 scripts/suivi.py</code>, puis <code>python3 scripts/boucle_executant.py 0</code>. La page de suivi est sur <code>127.0.0.1:8770</code>.</div>
+    <div>Pousser sur GitHub</div><div>Rien n'est poussé. Il manque un jeton pour <code>tomouxx/app-thomas</code>.</div>
+  </div>
+  <h3 class="mt22">Questions pour vous</h3>
+  <ol class="q">
+    <li>Votre agenda s'exporte-t-il en ICS depuis votre messagerie ? La recette du lot 1 en dépend.</li>
+    <li>Les règles R1 à R4 correspondent-elles au contrôle que vous faites à la main sur les imputations ?</li>
+    <li>Quand pouvez-vous fournir un écran d'imputation anonymisé (page HTML ou texte copié) ?</li>
+    <li>Gardez-vous les gardes d'hôte et d'origine sur la page web, le bouton « Réessayer » et la reprise d'un verrou périmé ?</li>
+    <li>Le traitement lancé par le bouton « Traiter maintenant » doit-il passer en arrière-plan dès la version 1 ? Le plan le laisse synchrone et renvoie la décision après le lot 2.</li>
+  </ol>
+</section>
+
+<section id="sources">
+  <span class="num">8 / sources</span>
+  <h2>Sources</h2>
+  <ul class="src">
+    <li><code>specs/10-plan-implementation.md</code> : lots, tâches, critères de fin, dépendances, estimation</li>
+    <li><code>specs/00-vision-et-decisions.md</code> : décisions vérifiées (§4.1 à §4.5), hypothèses ouvertes (§4.13), ajouts au kit (§4.15)</li>
+    <li><code>specs/09-tests-et-recette.md</code> : recette et seuil du lot 0 (§6)</li>
+    <li><code>docs/CHAINE.md</code>, <code>docs/REPRISE.md</code>, <code>REVIEW.md</code> : rôles et déroulé d'un lot</li>
+    <li><code>tickets/ETAT.md</code> et journal de la chaîne du 24.11.2026 : état des tâches et sessions</li>
+  </ul>
+  <p class="meta">Page générée le 24.11.2026 à partir des specs seules. Une relecture humaine précède toute diffusion.</p>
+</section>
+</main>
+
+<script>
+if (getComputedStyle(document.documentElement).getPropertyValue("--background").trim()) document.documentElement.classList.add("embed");
+
+const T = [
+  ["V0-01","Squelette","Squelette du dépôt",0,[],"make install et make check passent, cabinet version affiche 0.1.0, GET /sante répond."],
+  ["V0-02","Client du modèle","Client du modèle local et garde de bouclage",0,["V0-01"],"Une adresse distante est refusée. Le JSON du modèle est validé, avec deux relances au plus."],
+  ["V0-03","Journal","Journal des exécutions d'agent",0,["V0-01"],"Chaque exécution laisse une ligne, même en erreur. GET /journal affiche les 100 dernières."],
+  ["V1-01","Configuration","Configuration et répertoire de données",1,["V0-02","V0-03"],"cabinet init crée le répertoire de données. Une clé inconnue des réglages est refusée par son nom."],
+  ["V1-02","Modèle de données","Modèle de données",1,["V1-01"],"Les quatorze tables existent et les suppressions en cascade tiennent."],
+  ["V1-03","Ingestion","Dossier d'entrée et agent d'ingestion",1,["V1-02"],"Chaque fichier déposé reçoit sa nature et son état de départ, sans doublon."],
+  ["V1-04","Agenda ICS","Agenda par fichier ICS",1,["V1-02"],"Récurrences développées, séries et réunions créées, évènements annulés écartés."],
+  ["V1-05","Tableau de bord","Gabarit web et tableau de bord",1,["V1-02"],"Navigation, quatre compteurs, échéance des imputations, aucune ressource externe."],
+  ["V1-06","Page Entrée","Page Entrée, rattachement et consentement",1,["V1-03","V1-04","V1-05"],"Un fichier se rattache à une réunion. Un audio est refusé sans la case de consentement."],
+  ["V1-07","Brouillons","Brouillons sans envoi",1,["V1-05"],"Cycle brouillon, validé, rejeté, envoyé à la main. Le lien mailto n'existe qu'après validation."],
+  ["V1-08","Pipeline","Orchestrateur du pipeline",1,["V1-03","V1-04","V1-05"],"Agents dans l'ordre, verrou, journal, commande cabinet run et bouton « Traiter maintenant »."],
+  ["V2-01","Transcripts Teams","Lecture des transcripts Teams",2,["V1-06","V1-08"],"Les fichiers .vtt et .docx sont lus, rattachés à leur réunion et rangés dans traite/."],
+  ["V2-02","Notes","Lecture des notes",2,["V2-01"],"Notes en UTF-8 ou cp1252 lues sans altération, en-tête retiré."],
+  ["V2-03","Transcription audio","Transcription audio locale",2,["V2-01"],"Audio transcrit en local, second contrôle du consentement, purge à la validation."],
+  ["V2-04","Extraction du CR","Agent de compte rendu, extraction structurée",2,["V2-01"],"Un compte rendu structuré en version 1. Rien n'est écrit si le modèle échoue."],
+  ["V2-05","Extraits","Vérification des extraits",2,["V2-04"],"Chaque citation est contrôlée sans modèle, en moins de 2 secondes sur 200 000 caractères."],
+  ["V2-06","Page réunion","Page réunion, rendu et validation du compte rendu",2,["V2-05","V1-07","V2-03"],"Rendu en six rubriques, corrections, validation bloquée tant qu'un élément reste à vérifier."],
+  ["V2-07","Actions","Actions et décisions",2,["V2-06"],"Actions ouvertes des comptes rendus validés, filtres, clôture et réouverture."],
+  ["V2-08","Fiche de préparation","Fiche de préparation",2,["V2-07"],"Une fiche pour chaque réunion suivie des 7 prochains jours. Le modèle ne rédige que l'ordre du jour."],
+  ["V2-09","Sources longues","Sources longues",2,["V2-06"],"Une source de 30 000 mots est traitée en trois morceaux et quatre appels au modèle."],
+  ["V3-01","Référentiel","Référentiel d'équipe et jours attendus",3,["V1-01"],"21 jours ouvrés en novembre 2026. 15,2 jours attendus à 80 % avec deux jours d'absence."],
+  ["V3-02","Capture texte, HTML","Lecture d'une capture en texte ou HTML",3,["V3-01","V1-08"],"Les lignes sont lues depuis les jeux tirés de l'échantillon. La capture naît non relue."],
+  ["V3-03","Capture d'écran","Lecture d'une capture d'écran par le modèle",3,["V3-02"],"Une image est lue par le modèle local. La capture reste à relire."],
+  ["V3-04","Vérification","Écran de vérification d'une capture",3,["V3-02"],"Les lignes se corrigent à la main. Toute modification annule la relecture."],
+  ["V3-05","Règles R1 à R4","Moteur de règles",3,["V3-04"],"« 2 jours manquants (19 saisis, 21 attendus) », au mot près."],
+  ["V3-06","Relances","Brouillons de relance",3,["V3-05","V1-07"],"Un brouillon par personne en anomalie, par gabarit, sans appel au modèle."],
+  ["V3-07","Page imputations","Page imputations et échéance",3,["V3-06"],"Vue du mois par personne. L'échéance s'enregistre sans toucher au reste du fichier de réglages."]
+];
+const LOTS = ["Lot 0, preuve de la chaîne","Lot 1, socle","Lot 2, réunions","Lot 3, imputations"];
+const STATE = {0:"à faire, tests de contrat écrits",1:"à faire",2:"à faire",3:"à faire, attend l'échantillon de Thomas"};
+// position : identifiant -> [colonne x, rang]
+const P = {"V0-01":[225,0],"V0-02":[130,1],"V0-03":[320,1],"V1-01":[225,2],"V1-02":[225,3],"V1-03":[50,4],"V1-04":[225,4],"V1-05":[400,4],
+  "V1-06":[50,5],"V1-08":[225,5],"V1-07":[400,5],"V2-01":[130,6],"V2-02":[50,7],"V2-04":[225,7],"V2-03":[400,7],"V2-05":[225,8],"V2-06":[225,9],
+  "V2-07":[130,10],"V2-09":[320,10],"V2-08":[130,11],"V3-01":[660,3],"V3-02":[660,6],"V3-04":[660,7],"V3-05":[660,8],"V3-06":[660,9],"V3-07":[660,10],"V3-03":[660,11]};
+const W = 160, H = 44, Y = r => 64 + r * 72;
+// routage particulier : "de>vers" -> [côté départ, côté arrivée, tension]
+const R = {"V1-01>V3-01":["r","l"],"V1-08>V3-02":["b","l",60],"V1-07>V2-06":["r","r",60,"M560,446 C610,446 600,520 600,600 C600,700 480,734 385,734"],"V1-07>V3-06":["r","l"],"V2-03>V2-06":["b","r",60],"V3-02>V3-03":["r","r",36]};
+function port(id, s){ const [x, r] = P[id], y = Y(r);
+  return s==="l"?[x,y+H/2,-1,0]:s==="r"?[x+W,y+H/2,1,0]:s==="t"?[x+W/2,y,0,-1]:[x+W/2,y+H,0,1]; }
+function draw(){
+  const el = document.getElementById("g"); let s = "";
+  const band = (x,w,r1,r2,cls) => `<rect class="band ${cls}" x="${x}" y="${Y(r1)-28}" width="${w}" height="${(r2-r1)*72+H+42}" rx="10"/>`;
+  s += band(30,588,0,1,"n") + band(30,588,2,5,"n") + band(30,588,6,11,"n") + band(646,188,3,11,"n");
+  const vt = (r1,r2,t) => { const cy = (Y(r1)+Y(r2)+H)/2; return `<text class="band-t" transform="translate(20,${cy}) rotate(-90)" text-anchor="middle">${t}</text>`; };
+  s += vt(0,1,"LOT 0") + vt(2,5,"LOT 1 · SOCLE") + vt(6,11,"LOT 2 · RÉUNIONS") + `<text class="band-t" x="740" y="${Y(3)-36}" text-anchor="middle">LOT 3 · IMPUTATIONS</text>`;
+  for (const t of T) for (const dep of t[4]) {
+    const r = R[dep+">"+t[0]] || ["b","t"], a = port(dep,r[0]), b = port(t[0],r[1]);
+    const droit = r[0]==="b" && r[1]==="t";
+    const k = r[2] || (droit ? Math.max(10, (b[1]-a[1]) / 2) : Math.max(22, Math.hypot(b[0]-a[0], b[1]-a[1]) / 2.6));
+    s += `<path class="e" data-from="${dep}" data-to="${t[0]}" marker-end="url(#mg)" d="${r[3] || `M${a[0]},${a[1]} C${a[0]+a[2]*k},${a[1]+a[3]*k} ${b[0]+b[2]*k},${b[1]+b[3]*k} ${b[0]},${b[1]}`}"/>`;
+  }
+  for (const t of T) { const [x, r] = P[t[0]], y = Y(r), cls = t[3]===3 && t[0]!=="V3-01" ? "wait" : "";
+    s += `<g class="node" data-id="${t[0]}" tabindex="0" role="button" aria-label="${t[0]}, ${t[2]}"><rect class="box ${cls}" x="${x}" y="${y}" width="${W}" height="${H}" rx="8"/><text class="bt" x="${x+W/2}" y="${y+18}" text-anchor="middle">${t[0]}</text><text class="bs" x="${x+W/2}" y="${y+34}" text-anchor="middle">${t[1]}</text></g>`; }
+  el.innerHTML = `<svg viewBox="0 0 870 ${Y(11)+H+26}" role="img" aria-label="${el.dataset.label}"><defs><marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ah" d="M0,0L10,5L0,10z"/></marker></defs>${s}</svg>`;
+  const svg = el.firstChild, d = document.getElementById("d"), rest = d.innerHTML, by = Object.fromEntries(T.map(t => [t[0], t]));
+  const show = id => { const t = by[id], next = T.filter(u => u[4].includes(id)).map(u => u[0]);
+    svg.classList.add("dim");
+    svg.querySelectorAll(".node").forEach(n => n.classList.toggle("on", n.dataset.id===id || t[4].includes(n.dataset.id) || next.includes(n.dataset.id)));
+    svg.querySelectorAll(".e").forEach(e => e.classList.toggle("on", e.dataset.from===id || e.dataset.to===id));
+    const etat = t[0]==="V3-01" ? "à faire, ne dépend pas de l'échantillon" : STATE[t[3]];
+    d.innerHTML = `<h3><span class="mono">${t[0]}</span>${t[2]}</h3><dl><dt>Lot</dt><dd>${LOTS[t[3]]}</dd><dt>État</dt><dd>${etat}</dd><dt>Dépend de</dt><dd>${t[4].join(", ") || "aucune tâche"}</dd><dt>Débloque</dt><dd>${next.join(", ") || "aucune tâche"}</dd><dt>Terminé quand</dt><dd>${t[5]}</dd></dl>`; };
+  const clear = () => { svg.classList.remove("dim"); d.innerHTML = rest; };
+  svg.querySelectorAll(".node").forEach(n => {
+    n.addEventListener("mouseenter", () => show(n.dataset.id)); n.addEventListener("focus", () => show(n.dataset.id));
+    n.addEventListener("click", () => show(n.dataset.id));
+    n.addEventListener("mouseleave", () => { if (document.activeElement !== n) clear(); }); n.addEventListener("blur", clear);
+  });
+}
+draw();
+</script>
+</body>
+</html>
