@@ -359,6 +359,12 @@ def relire_angle(agent: str, ticket: str, commit: str, arbre: Path, args) -> dic
         extra=extra, angle=ANGLES[agent],
     )
     sortie = lancer_claude(consigne, SCHEMA_CONSTATS, arbre, args.modele, args.budget)
+    if not sortie.get("resultat") and args.modele_verificateur != args.modele:
+        # Un angle en erreur est rejoué une fois, sur le modèle du vérificateur.
+        premier = sortie
+        sortie = lancer_claude(consigne, SCHEMA_CONSTATS, arbre, args.modele_verificateur, args.budget)
+        sortie["cout"] = sortie.get("cout", 0.0) + premier.get("cout", 0.0)
+        sortie["duree_s"] = sortie.get("duree_s", 0) + premier.get("duree_s", 0)
     res = sortie.get("resultat") or {}
     constats = res.get("constats") or []
     for rang, c in enumerate(constats, 1):
@@ -435,9 +441,16 @@ def relire(ticket: str, commit: str, tentative: int, args) -> dict:
     constats = [c for a in angles for c in a["constats"]]
     confirmes = [c for c in constats if c.get("statut") == "confirme"]
     cout = round(sum(a.get("cout", 0) for a in angles) + verif.get("cout", 0), 4)
+    # Un angle qui n'a pas pu relire laisse un trou : le ticket ne peut pas sortir « ok ».
+    incomplets = [a["agent"] for a in angles if a["verdict"] == "erreur"]
+    verdict, synthese = verif["verdict"], verif.get("synthese", "")
+    if incomplets:
+        verdict = "reserves" if verdict == "ok" else verdict
+        synthese = ("Relecture incomplète, angle en erreur : "
+                    + ", ".join(NOMS[a] for a in incomplets) + ". " + synthese)
     rapport = {
         "ticket": ticket, "commit": commit, "tentative": tentative, "date": maintenant(),
-        "verdict": verif["verdict"], "synthese": verif.get("synthese", ""),
+        "verdict": verdict, "synthese": synthese, "incomplets": incomplets,
         "cout_usd": cout, "duree_s": round(time.monotonic() - debut),
         "modeles": {"angles": args.modele, "verificateur": args.modele_verificateur},
         "angles": [{k: a.get(k) for k in ("agent", "verdict", "resume", "points_forts",

@@ -1117,6 +1117,12 @@ def calculer_alertes(evenements: list[dict], runs: list[dict], chaine: dict, tic
                    f"Trois tentatives sans succès. Voir tickets/notes/{t['id']}.md.")
     a_trier: dict[str, int] = {}
     for r in rapports_avec_tri():
+        en_erreur = [a.get("agent") for a in r.get("angles", []) if a.get("verdict") == "erreur"]
+        if en_erreur:
+            alerte("alerte", f"incomplet-{r.get('ticket')}-{r.get('commit')}",
+                   f"Relecture incomplète de {r.get('ticket')}",
+                   f"L'angle {', '.join(str(a) for a in en_erreur)} n'a pas pu relire. "
+                   "Relancez la relecture depuis le panneau Pilotage.")
         for c in r.get("constats", []):
             if c.get("statut") == "confirme" and not c.get("tri") and c.get("gravite") in ("bloquant", "majeur"):
                 a_trier[c["gravite"]] = a_trier.get(c["gravite"], 0) + 1
@@ -1390,6 +1396,10 @@ def journal_garde() -> dict:
                            "motif": r.get("motif")})
         for tour in session["tours"]:
             for o in tour["outils"]:
+                if str(o.get("fichier") or "").startswith("/") and not o["erreur"]:
+                    lignes.append({"t": iso(o.get("ts")) or run["debut"], "ticket": run["ticket"],
+                                   "genre": "hors_depot", "detail": f"{o['nom']} · {o['fichier']}",
+                                   "motif": "fichier écrit hors du dépôt"})
                 if o["erreur"] and "denied" not in str(o.get("resultat") or "")[:200]:
                     lignes.append({"t": iso(o.get("ts")) or run["debut"], "ticket": run["ticket"],
                                    "genre": "erreur", "detail": f"{o['nom']} · {o['entree'][:200]}",
@@ -2760,7 +2770,7 @@ async function vueCarte(){
 
 /* ---------- journal de la garde ---------- */
 let gardeGenre = null;
-const GENRES = {refus:["Refus de permission","critique","refus de permission"], erreur:["Erreur d'outil","alerte","erreurs d'outil"], hors_liste:["Fichier hors du ticket","alerte","fichiers hors de la liste du ticket"],
+const GENRES = {refus:["Refus de permission","critique","refus de permission"], erreur:["Erreur d'outil","alerte","erreurs d'outil"], hors_liste:["Fichier hors du ticket","alerte","fichiers hors de la liste du ticket"], hors_depot:["Écriture hors du dépôt","critique","écritures hors du dépôt"],
   restaure:["Fichier protégé restauré","critique","fichiers protégés restaurés"], alerte:["Alerte","critique","alertes de la boucle"], compaction:["Contexte résumé","","résumés du contexte"]};
 async function vueGarde(){
   const d = await charger("garde", "/api/garde"); if (!d) return;

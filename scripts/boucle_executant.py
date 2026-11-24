@@ -113,6 +113,12 @@ INTERDITS = [
     "Edit(CLAUDE.md)",
     "Edit(tickets/V*.md)",
     "Edit(tickets/ETAT.md)",
+    # Rien hors du dépôt : ni fichier temporaire, ni répertoire de données réel.
+    "Edit(//tmp/**)",
+    "Edit(//private/tmp/**)",
+    "Edit(//var/folders/**)",
+    "Edit(~/Cabinet/**)",
+    "Read(~/Cabinet/**)",
     "Bash(git commit *)",
     "Bash(git push *)",
     "Bash(git reset *)",
