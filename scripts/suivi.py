@@ -49,6 +49,7 @@ class Depot:
         self.journal = self.chaine / "journal.jsonl"
         self.pid = self.chaine / "boucle.pid"
         self.etat = racine / "tickets" / "ETAT.md"
+        self.revues = self.chaine / "revues"
 
 
 DEPOT = Depot(Path(__file__).resolve().parent.parent)
@@ -80,16 +81,64 @@ def lire_tickets() -> list[dict]:
     return tickets
 
 
-def lire_journal() -> list[dict]:
-    if not DEPOT.journal.exists():
+def lire_jsonl(chemin: Path) -> list[dict]:
+    if not chemin.exists():
         return []
     evenements = []
-    for ligne in DEPOT.journal.read_text(encoding="utf-8").splitlines():
+    for ligne in chemin.read_text(encoding="utf-8").splitlines():
         try:
             evenements.append(json.loads(ligne))
         except ValueError:
             continue
     return evenements
+
+
+def lire_journal() -> list[dict]:
+    """Journal de la boucle et journal des relecteurs, fusionnés dans l'ordre du temps."""
+    boucle = lire_jsonl(DEPOT.journal)
+    revues = lire_jsonl(DEPOT.revues / "journal.jsonl")
+    if not revues:
+        return boucle
+    return sorted(boucle + revues, key=lambda e: secondes(e.get("t")) or 0)
+
+
+AGENTS_REVUE = ("conformite", "principes", "tests", "code", "conduite", "verificateur")
+
+
+def etat_revues(evenements: list[dict]) -> dict:
+    agents = {a: {"etat": "repos"} for a in AGENTS_REVUE}
+    for e in evenements:
+        if e["evt"] == "agent_debut":
+            agents[e["agent"]] = {"etat": "relit", "ticket": e["ticket"], "depuis": e["t"]}
+        elif e["evt"] == "agent_fin":
+            agents[e["agent"]] = {"etat": "fini", **{k: e.get(k) for k in (
+                "ticket", "verdict", "constats", "confirmes", "gravites", "cout", "duree_s")}}
+    rapports = lire_rapports()
+    try:
+        os.kill(int((DEPOT.revues / "veille.pid").read_text()), 0)
+        veille = True
+    except (OSError, ValueError):
+        veille = False
+    return {
+        "veille": veille,
+        "agents": agents,
+        "tickets": [{k: r.get(k) for k in ("ticket", "commit", "verdict", "cout_usd", "duree_s")}
+                    | {"confirmes": sum(1 for c in r["constats"] if c.get("statut") == "confirme"),
+                       "bloquants": sum(1 for c in r["constats"] if c.get("statut") == "confirme"
+                                        and c.get("gravite") == "bloquant")}
+                    for r in rapports],
+        "cout_usd": round(sum(r.get("cout_usd") or 0 for r in rapports), 2),
+    }
+
+
+def lire_rapports() -> list[dict]:
+    rapports = []
+    for fichier in sorted(DEPOT.revues.glob("V*.json")):
+        try:
+            rapports.append(json.loads(fichier.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            continue
+    return rapports
 
 
 def port_ouvert(port: int) -> bool:
@@ -454,6 +503,7 @@ def construire_etat() -> dict:
         "en_cours": en_cours,
         "mesures": mesures,
         "runs": runs,
+        "revues": etat_revues(evenements),
         "seq": len(evenements),
         "activite": evenements[-80:],
     }
@@ -604,7 +654,7 @@ main{padding:18px 20px 40px;max-width:1500px;margin:0 auto}
 #flux .p{width:10px;height:10px;border-radius:50%;margin-top:4px;background:var(--gris)}
 #flux .l b{font-weight:600} #flux .l span{color:var(--doux);word-break:break-word}
 .p.lecture{background:var(--s1)!important}.p.ecriture{background:var(--s2)!important}.p.shell{background:var(--s3)!important}.p.recherche{background:var(--s4)!important}
-.p.ok{background:var(--bon)!important}.p.ko{background:var(--critique)!important}.p.alerte{background:var(--alerte)!important}.p.boucle{background:var(--accent)!important}
+.p.claude{background:var(--zc)!important}.p.ok{background:var(--bon)!important}.p.ko{background:var(--critique)!important}.p.alerte{background:var(--alerte)!important}.p.boucle{background:var(--accent)!important}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--trait);white-space:nowrap}
 th{font-size:12px;color:var(--doux);font-weight:600}
@@ -661,6 +711,17 @@ td.n{text-align:right} th.n{text-align:right}
 @keyframes respirer{50%{box-shadow:0 0 0 6px var(--accent-lave)}}
 .bulle{position:fixed;z-index:9;pointer-events:none;background:var(--encre);color:var(--surface);padding:6px 9px;border-radius:7px;font-size:12px;max-width:340px;white-space:pre-line}
 .vide{color:var(--doux);font-size:13px;padding:6px 0}
+#revues{display:grid;gap:14px}
+.synthese{margin:0 0 10px;max-width:90ch}
+.angles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-bottom:12px}
+.angle{background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:13px}
+.angle div{color:var(--doux);margin-top:4px}
+table.constats td{white-space:normal;vertical-align:top} table.constats td.txt{min-width:320px}
+table.constats tbody tr{cursor:default}
+table.constats tr.st-rejete td{opacity:.55} table.constats tr.st-rejete summary{text-decoration:line-through}
+.chip.st.confirme{border-color:var(--bon);color:var(--bon)} .chip.st.rejete{color:var(--doux)} .chip.st.incertain{border-color:var(--alerte);color:var(--alerte)}
+.grav{font:600 12px var(--mono)} .grav.bloquant{color:var(--critique)} .grav.majeur{color:var(--alerte)} .grav.mineur,.grav.remarque{color:var(--doux)}
+.forts{margin-top:10px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -674,15 +735,16 @@ td.n{text-align:right} th.n{text-align:right}
   <button role="tab" data-onglet="direct" aria-selected="true">Direct</button>
   <button role="tab" data-onglet="runs" aria-selected="false">Runs</button>
   <button role="tab" data-onglet="tickets" aria-selected="false">Tickets</button>
+  <button role="tab" data-onglet="revues" aria-selected="false">Revues</button>
 </nav>
 <main>
 <section id="v-direct">
   <div class="kpis" id="kpis"></div>
   <div class="direct">
     <div class="carte">
-      <div class="carte-t">Qui fait quoi <span class="aide">Qwen développe, la boucle vérifie à chaque session, Claude écrit les tests avant et juge la vague après. Un point circule à chaque échange.</span></div>
+      <div class="carte-t">Qui fait quoi <span class="aide">Qwen développe, la boucle vérifie à chaque session, six agents Claude relisent chaque commit, Claude juge la vague. Un point circule à chaque échange.</span></div>
       <div class="defile">
-      <svg id="graphe" viewBox="0 0 1250 570" role="img" aria-label="Qui fait quoi. À gauche, la boucle, un script sans IA, lance les sessions, lance make check et fait les commits. Au centre, Qwen, en local, développe : il écrit le code par Claude Code, avec quatre familles d'outils, dans le dépôt. À droite, Claude, distant, contrôle : il a écrit les tests de contrat que make check exécute, il règle la chaîne et il relit tout le code à la fin de la vague.">
+      <svg id="graphe" viewBox="0 0 1250 800" role="img" aria-label="Qui fait quoi. En bas, six relecteurs automatiques Claude relisent chaque commit puis un vérificateur confirme leurs constats. À gauche, la boucle, un script sans IA, lance les sessions, lance make check et fait les commits. Au centre, Qwen, en local, développe : il écrit le code par Claude Code, avec quatre familles d'outils, dans le dépôt. À droite, Claude, distant, contrôle : il a écrit les tests de contrat que make check exécute, il règle la chaîne et il relit tout le code à la fin de la vague.">
         <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="fleche" d="M0,0L10,5L0,10z"/></marker></defs>
         <rect class="zone zb" x="20" y="112" width="232" height="420" rx="14"/>
         <text class="zt" x="36" y="134">BOUCLE · VÉRIFIE</text><text class="zs" x="36" y="150">script, sans IA</text>
@@ -739,6 +801,34 @@ td.n{text-align:right} th.n{text-align:right}
           <g class="noeud claude" id="n-contrats"><rect class="fond" x="1030" y="302" width="188" height="66" rx="10"/><text class="t" x="1046" y="326">Tests de contrat</text><text class="s" x="1046" y="344">tests/contrats, par Claude</text><text class="b" id="b-contrats" x="1046" y="360"></text></g>
           <g class="noeud claude" id="n-revue"><rect class="fond" x="1030" y="440" width="188" height="66" rx="10"/><text class="t" x="1046" y="464">Revue de vague</text><text class="s" x="1046" y="482">phase B, rapport, verdict</text><text class="b" id="b-revue" x="1046" y="498"></text></g>
         </g>
+        <rect class="zone zc" x="20" y="588" width="1216" height="196" rx="14"/>
+        <text class="zt zc-t" x="36" y="610">CLAUDE · RELECTEURS AUTOMATIQUES</text><text class="zs" x="36" y="626">six agents relisent chaque ticket commité, en lecture seule, sans rien corriger</text>
+        <g id="aretes-revue">
+          <path class="arete" id="e-git-a-conformite" d="M136,510 V632 H130 V648" marker-end="url(#fl)"/>
+          <path class="arete" id="e-git-a-principes" d="M136,510 V632 H284 V648" marker-end="url(#fl)"/>
+          <path class="arete" id="e-git-a-tests" d="M136,510 V632 H438 V648" marker-end="url(#fl)"/>
+          <path class="arete" id="e-git-a-code" d="M136,510 V632 H592 V648" marker-end="url(#fl)"/>
+          <path class="arete" id="e-git-a-conduite" d="M136,510 V632 H746 V648" marker-end="url(#fl)"/>
+          <path class="arete" id="e-a-conformite-verificateur" d="M130,712 V748 H935 V714" marker-end="url(#fl)"/>
+          <path class="arete" id="e-a-principes-verificateur" d="M284,712 V748 H935 V714" marker-end="url(#fl)"/>
+          <path class="arete" id="e-a-tests-verificateur" d="M438,712 V748 H935 V714" marker-end="url(#fl)"/>
+          <path class="arete" id="e-a-code-verificateur" d="M592,712 V748 H935 V714" marker-end="url(#fl)"/>
+          <path class="arete" id="e-a-conduite-verificateur" d="M746,712 V748 H935 V714" marker-end="url(#fl)"/>
+          <path class="arete" id="e-a-verificateur-rapport" d="M1010,681 H1046" marker-end="url(#fl)"/>
+          <path class="arete" id="e-a-rapport-revue" d="M1133,648 V510" marker-end="url(#fl)"/>
+        </g>
+        <text class="etiq" x="148" y="578">à chaque commit</text>
+        <text class="etiq" x="560" y="766" text-anchor="middle">constats à vérifier</text>
+        <text class="etiq" x="1142" y="566">nourrit la phase B</text>
+        <g id="noeuds-revue">
+          <g class="noeud claude" id="n-a-conformite"><rect class="fond" x="60" y="650" width="140" height="62" rx="10"/><text class="t" x="74" y="672">Conformité</text><text class="s" x="74" y="688">ticket et specs/</text><text class="b" id="b-a-conformite" x="74" y="704"></text></g>
+          <g class="noeud claude" id="n-a-principes"><rect class="fond" x="214" y="650" width="140" height="62" rx="10"/><text class="t" x="228" y="672">Principes</text><text class="s" x="228" y="688">les sept principes</text><text class="b" id="b-a-principes" x="228" y="704"></text></g>
+          <g class="noeud claude" id="n-a-tests"><rect class="fond" x="368" y="650" width="140" height="62" rx="10"/><text class="t" x="382" y="672">Tests de Qwen</text><text class="s" x="382" y="688">pas de test complaisant</text><text class="b" id="b-a-tests" x="382" y="704"></text></g>
+          <g class="noeud claude" id="n-a-code"><rect class="fond" x="522" y="650" width="140" height="62" rx="10"/><text class="t" x="536" y="672">Code</text><text class="s" x="536" y="688">conventions, lisibilité</text><text class="b" id="b-a-code" x="536" y="704"></text></g>
+          <g class="noeud claude" id="n-a-conduite"><rect class="fond" x="676" y="650" width="140" height="62" rx="10"/><text class="t" x="690" y="672">Conduite</text><text class="s" x="690" y="688">la session de Qwen</text><text class="b" id="b-a-conduite" x="690" y="704"></text></g>
+          <g class="noeud claude" id="n-a-verificateur"><rect class="fond" x="860" y="650" width="150" height="62" rx="10"/><text class="t" x="874" y="672">Vérificateur</text><text class="s" x="874" y="688">confirme ou rejette</text><text class="b" id="b-a-verificateur" x="874" y="704"></text></g>
+          <g class="noeud claude" id="n-a-rapport"><rect class="fond" x="1048" y="650" width="170" height="62" rx="10"/><text class="t" x="1062" y="672">Rapport du ticket</text><text class="s" x="1062" y="688">.chaine/revues/</text><text class="b" id="b-a-rapport" x="1062" y="704"></text></g>
+        </g>
         <g id="particules"></g>
       </svg>
       </div>
@@ -759,6 +849,10 @@ td.n{text-align:right} th.n{text-align:right}
   </div>
   <div id="detail"></div>
 </section>
+<section id="v-revues" hidden>
+  <div class="kpis" id="kpis-r"></div>
+  <div id="revues"></div>
+</section>
 <section id="v-tickets" hidden>
   <div class="kpis" id="kpis-t"></div>
   <div class="filtres" id="filtres"></div>
@@ -777,7 +871,14 @@ const LIBELLES = {boucle_debut:"Début de la boucle", boucle_fin:"Fin de la bouc
   boucle_erreur:"Erreur de la boucle", session_debut:"Début de session", session_init:"Session prête", session_fin:"Fin de session",
   outil:"Outil", outil_erreur:"Refus ou erreur d'outil", texte:"Qwen écrit", garde:"Fichier protégé restauré",
   hors_liste:"Fichier hors du ticket", install:"make install", verif:"Vérification", commit:"Commit", bloque:"Ticket bloqué",
-  saute:"Ticket sauté", intervention:"Intervention", remise:"Ticket remis à faire", nettoyage:"Arbre mis de côté", alerte:"Alerte"};
+  saute:"Ticket sauté", intervention:"Intervention", remise:"Ticket remis à faire", nettoyage:"Arbre mis de côté", alerte:"Alerte",
+  veille_debut:"Relecteurs en veille", revue_debut:"Relecture lancée", agent_debut:"Relecteur au travail", agent_fin:"Relecteur terminé",
+  revue_fin:"Relecture terminée", revue_erreur:"Relecture en échec"};
+const AGENTS = ["conformite","principes","tests","code","conduite"];
+const NOMS_A = {conformite:"Conformité", principes:"Principes", tests:"Tests de Qwen", code:"Code", conduite:"Conduite", verificateur:"Vérificateur"};
+const VERDICT = {ok:"✓ ok", reserves:"⚠ réserves", ko:"✕ ko", erreur:"erreur"};
+const COUL_V = {ok:"bon", reserves:"alerte", ko:"critique", erreur:"critique"};
+const gravTxt = g => g ? Object.entries(g).map(([k,v]) => `${v} ${k}${v > 1 ? "s" : ""}`).join(", ") : "";
 const nf = new Intl.NumberFormat("fr-FR");
 let etat = null, seq = null, onglet = "direct", runSel = null, lotFiltre = null, file = [], enLecture = false;
 
@@ -791,11 +892,11 @@ async function api(u){ const r = await fetch(u, {cache:"no-store"}); if (!r.ok) 
 document.querySelectorAll(".onglets button").forEach(b => b.addEventListener("click", () => {
   onglet = b.dataset.onglet;
   document.querySelectorAll(".onglets button").forEach(x => x.setAttribute("aria-selected", x === b));
-  for (const v of ["direct","runs","tickets"]) $("#v-"+v).hidden = v !== onglet;
+  for (const v of ["direct","runs","tickets","revues"]) $("#v-"+v).hidden = v !== onglet;
   history.replaceState(null, "", onglet === "direct" ? location.pathname : "#" + onglet);
   rendre();
 }));
-{ const h = location.hash.slice(1); if (h === "runs" || h === "tickets") document.querySelector(`[data-onglet="${h}"]`).click(); }
+{ const h = location.hash.slice(1); if (["runs","tickets","revues"].includes(h)) document.querySelector(`[data-onglet="${h}"]`).click(); }
 
 /* ---------- graphe animé ---------- */
 const NS = "http://www.w3.org/2000/svg";
@@ -843,6 +944,13 @@ async function scene(ev){
       else { eclat("relecteur"); await particule("e-relecteur-boucle","accent",false,1100); } eclat("boucle"); break;
     case "boucle_fin": eclat("boucle","eclat-ok"); await particule("e-depot-revue","zc",false,1200); eclat("revue"); break;
     case "boucle_arret": case "boucle_erreur": eclat("boucle","eclat-alerte"); break;
+    case "revue_debut": eclat("git"); break;
+    case "agent_debut": if (ev.agent === "verificateur") { for (const a of AGENTS) particule(`e-a-${a}-verificateur`,"zc",false,1100); eclat("a-verificateur"); }
+      else { await particule(`e-git-a-${ev.agent}`,"zc",false,1100); eclat("a-" + ev.agent); } break;
+    case "agent_fin": if (ev.agent === "verificateur") { eclat("a-verificateur", ev.verdict === "ok" ? "eclat-ok" : ev.verdict === "ko" ? "eclat-ko" : "eclat-alerte");
+        await particule("e-a-verificateur-rapport", COUL_V[ev.verdict] || "zc"); eclat("a-rapport"); }
+      else eclat("a-" + ev.agent, ev.verdict === "ok" ? "eclat-ok" : ev.verdict === "ko" ? "eclat-ko" : "eclat-alerte"); break;
+    case "revue_fin": await particule("e-a-rapport-revue","zc",false,900); eclat("revue"); break;
   }
 }
 async function jouer(){ if (enLecture) return; enLecture = true;
@@ -877,6 +985,12 @@ function graphe(){
   const finie = !c.boucle && m.tickets > 0 && m.faits + m.bloques === m.tickets;
   $("#b-revue").textContent = finie ? "à faire maintenant" : "après la vague";
   document.getElementById("n-revue").classList.toggle("actif", finie);
+  const rv = etat.revues || {agents:{}, tickets:[]};
+  for (const a of [...AGENTS, "verificateur"]){ const x = rv.agents[a] || {}, b = $("#b-a-" + a);
+    document.getElementById("n-a-" + a).classList.toggle("actif", x.etat === "relit");
+    b.textContent = x.etat === "relit" ? `relit ${x.ticket}…` : x.etat === "fini" ? `${x.ticket} ${VERDICT[x.verdict] || x.verdict}` : (rv.veille ? "en veille" : "à l'arrêt"); }
+  const der = rv.tickets[rv.tickets.length - 1];
+  $("#b-a-rapport").textContent = der ? `${der.ticket} ${VERDICT[der.verdict] || ""} · ${der.confirmes} constat(s)` : "aucun pour l'instant";
 }
 function phaseTexte(p){ return {reflechit:"réfléchit", outil:"utilise un outil", attend:"attend le modèle", ecrit:"écrit", terminee:"terminée", verification:"vérification"}[p] || "démarre"; }
 
@@ -920,6 +1034,9 @@ function classeEv(ev){ if (ev.evt === "outil") return FAM[ev.nom] || "shell";
   if (ev.evt === "verif") return ev.ok ? "ok" : "ko"; if (ev.evt === "commit") return "ok";
   if (["outil_erreur","bloque","boucle_erreur"].includes(ev.evt)) return "ko";
   if (["garde","hors_liste","alerte","boucle_arret","intervention"].includes(ev.evt)) return "alerte";
+  if (ev.evt === "agent_fin" || ev.evt === "revue_fin") return {ok:"ok", reserves:"alerte", ko:"ko"}[ev.verdict] || "ko";
+  if (ev.evt === "revue_erreur") return "ko";
+  if (["veille_debut","revue_debut","agent_debut"].includes(ev.evt)) return "claude";
   return "boucle"; }
 function detailEv(ev){
   switch (ev.evt){
@@ -933,6 +1050,12 @@ function detailEv(ev){
     case "hors_liste": return (ev.fichiers || []).join(", ");
     case "bloque": return `${ev.ticket} après ${ev.tentatives} tentatives`;
     case "boucle_debut": return `vague ${ev.vague}, modèle ${ev.modele}`;
+    case "revue_debut": return `${ev.ticket}, commit ${ev.commit}, six agents`;
+    case "agent_debut": return `${NOMS_A[ev.agent]} relit ${ev.ticket}`;
+    case "agent_fin": return `${NOMS_A[ev.agent]} : ${VERDICT[ev.verdict] || ev.verdict}${ev.agent === "verificateur" ? `, ${ev.confirmes ?? 0} confirmé(s), ${ev.rejetes ?? 0} rejeté(s)` : `, ${ev.constats} constat(s)`}`;
+    case "revue_fin": return `${ev.ticket} : ${VERDICT[ev.verdict] || ev.verdict}, ${ev.confirmes} constat(s) confirmé(s), ${ev.cout} $`;
+    case "revue_erreur": return `${ev.ticket} : ${ev.erreur}`;
+    case "veille_debut": return `modèle ${ev.modele}, vérificateur ${ev.verificateur}`;
     default: return ev.resume || ev.detail || ev.motif || "";
   }
 }
@@ -1069,8 +1192,36 @@ function tickets(){
 }
 
 /* ---------- boucle de rafraîchissement ---------- */
+let revuesCharge = 0, revuesSig = "";
+async function revues(force){
+  const rv = etat.revues, sig = JSON.stringify(rv.tickets);
+  $("#kpis-r").innerHTML = [[rv.tickets.length, "tickets relus"], [rv.tickets.reduce((a,t) => a + t.confirmes, 0), "constats confirmés"],
+    [rv.tickets.reduce((a,t) => a + t.bloquants, 0), "bloquants confirmés"], [`${nf.format(rv.cout_usd)} $`, "coût des relectures"],
+    [rv.veille ? "en veille" : "à l'arrêt", "relecteurs automatiques"]].map(([v,l]) => `<div class="kpi"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("");
+  if (!force && sig === revuesSig && Date.now() - revuesCharge < 30000) return;
+  revuesSig = sig; revuesCharge = Date.now();
+  const R = await api("/api/revues").catch(() => []);
+  if (!R.length){ $("#revues").innerHTML = `<div class="carte vide">Aucune relecture pour l'instant. Les six agents relisent chaque ticket dès que la boucle le commite.</div>`; return; }
+  const ordreG = {bloquant:0, majeur:1, mineur:2, remarque:3}, ordreS = {confirme:0, incertain:1, rejete:2};
+  $("#revues").innerHTML = R.slice().reverse().map(r => `<div class="carte revue">
+    <div class="carte-t">${esc(r.ticket)} · commit <code>${esc(r.commit)}</code> <span class="statut ${r.verdict === "ok" ? "reussi" : r.verdict === "ko" ? "echec" : "interrompu"}">${esc(VERDICT[r.verdict] || r.verdict)}</span>
+      <span class="aide">relu ${heure(r.date)} · ${duree(r.duree_s)} · ${nf.format(r.cout_usd)} $ · ${esc(r.modeles.angles)}, vérificateur ${esc(r.modeles.verificateur)}</span></div>
+    <p class="synthese">${esc(r.synthese)}</p>
+    <div class="angles">${r.angles.map(a => `<div class="angle"><b>${esc(NOMS_A[a.agent])}</b> <span class="statut ${a.verdict === "ok" ? "reussi" : a.verdict === "ko" || a.verdict === "erreur" ? "echec" : "interrompu"}">${esc(VERDICT[a.verdict] || a.verdict)}</span><div>${esc(a.resume || a.erreur || "")}</div></div>`).join("")}</div>
+    <div class="defile"><table class="constats"><thead><tr><th>Statut</th><th>Gravité</th><th>Agent</th><th>Où</th><th>Constat</th></tr></thead><tbody>
+    ${r.constats.slice().sort((a,b) => (ordreS[a.statut] ?? 1) - (ordreS[b.statut] ?? 1) || ordreG[a.gravite] - ordreG[b.gravite]).map(c => `<tr class="st-${esc(c.statut)}">
+      <td><span class="chip st ${esc(c.statut)}">${esc({confirme:"confirmé", rejete:"rejeté", incertain:"incertain"}[c.statut] || "")}</span></td>
+      <td><span class="grav ${esc(c.gravite)}">${esc(c.gravite)}</span></td><td>${esc(NOMS_A[c.agent])}</td>
+      <td class="mono">${esc(c.fichier)}${c.ligne ? ":" + c.ligne : ""}</td>
+      <td class="txt"><details><summary>${esc(c.titre)}</summary><div class="aide">${esc(c.detail)}</div>
+        ${c.attendu ? `<div><b>Attendu</b> : ${esc(c.attendu)}</div>` : ""}<div><b>Règle</b> : ${esc(c.regle)}</div>
+        <div><b>Vérificateur</b> : ${esc(c.raison || "")}</div></details></td></tr>`).join("") || `<tr><td colspan="5" class="vide">Aucun constat.</td></tr>`}
+    </tbody></table></div>
+    ${r.angles.some(a => (a.points_forts || []).length) ? `<div class="aide forts">Points forts : ${esc(r.angles.flatMap(a => a.points_forts || []).slice(0,6).join(" · "))}</div>` : ""}
+  </div>`).join("");
+}
 function rendre(){ if (!etat) return; pastilles(); kpis(); graphe(); pensee();
-  if (onglet === "runs") runs(); if (onglet === "tickets") tickets(); }
+  if (onglet === "runs") runs(); if (onglet === "tickets") tickets(); if (onglet === "revues") revues(); }
 async function rafraichir(){
   try {
     const e = await api("/api/etat"); const premier = etat === null; etat = e;
@@ -1116,6 +1267,8 @@ class Gestionnaire(BaseHTTPRequestHandler):
             self.json(construire_etat())
         elif url.path == "/api/evenements":
             self.json(evenements_depuis(int((params.get("depuis") or ["0"])[0] or 0)))
+        elif url.path == "/api/revues":
+            self.json(lire_rapports())
         elif url.path == "/api/run":
             detail = detail_run((params.get("id") or [""])[0])
             if detail is None:
