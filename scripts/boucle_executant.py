@@ -44,6 +44,8 @@ JOURNAL = DOSSIER / "journal.jsonl"
 SESSIONS = DOSSIER / "sessions"
 VERIFS = DOSSIER / "verifs"
 FICHIER_PID = DOSSIER / "boucle.pid"
+# Posé par la page de suivi : la boucle s'arrête avant le ticket suivant.
+FICHIER_PAUSE = DOSSIER / "pause"
 ETAT = RACINE / "tickets" / "ETAT.md"
 ETAT_REL = "tickets/ETAT.md"
 
@@ -474,6 +476,8 @@ def lancer_session(ticket: dict, tentative: int, echec: str | None, args) -> dic
             "--output-format",
             "stream-json",
             "--verbose",
+            # Flux mot à mot : `scripts/suivi.py` affiche la pensée de l'exécutant en direct.
+            "--include-partial-messages",
             "--permission-mode",
             "acceptEdits",
             "--permission-prompts",
@@ -635,7 +639,14 @@ def verifier(ticket: dict, tentative: int, etat_attendu: str) -> tuple[bool, str
     maison = Path.home() / "Cabinet"
     maison_avant = maison.exists()
     code, sortie = lancer_make(
-        "check", ident, 900, {"CABINET_RAPPORT_CONTRATS": str(rapport)}
+        "check",
+        ident,
+        900,
+        {
+            "CABINET_RAPPORT_CONTRATS": str(rapport),
+            # Résultat test par test, lu par la matrice de couverture de la page de suivi.
+            "PYTEST_ADDOPTS": f"--junitxml={base}-junit.xml",
+        },
     )
     Path(f"{base}-check.txt").write_text(sortie, encoding="utf-8")
     if maison.exists() and not maison_avant:
@@ -804,13 +815,23 @@ def boucle(args) -> int:
     signal.signal(signal.SIGTERM, interrompre)
     signal.signal(signal.SIGINT, interrompre)
     debut = time.monotonic()
-    noter("boucle_debut", vague=vague, modele=args.modele, pid=os.getpid())
+    noter(
+        "boucle_debut",
+        vague=vague,
+        modele=args.modele,
+        pid=os.getpid(),
+        delai_session=args.delai_session,
+    )
     try:
         while True:
             prets, sautes = a_traiter(vague, args.ticket)
             if not prets:
                 for t in sautes:
                     noter("saute", ticket=t["id"], motif="dépendance non faite", depend=t["depend"])
+                break
+            if FICHIER_PAUSE.exists():
+                FICHIER_PAUSE.unlink()
+                noter("boucle_pause", vague=vague, prochain=prets[0]["id"])
                 break
             traiter(prets[0], args)
     except Exception as exc:  # la boucle s'arrête, l'erreur reste dans le journal
