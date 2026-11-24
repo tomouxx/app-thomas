@@ -28,6 +28,7 @@ Le kit d'origine prévoyait une session interactive de l'exécutant, lancée à 
 | Modèle Qwen3.8 27B, MLX 6 bits | LM Studio, dépôt `lmstudio-community/Qwen3.8-27B-MLX-6bit` | 22,8 Go. Servi sous l'identifiant `qwen3.8-27b` |
 | Serveur du modèle | LM Studio, `127.0.0.1:8080` | Lancé par `lms server start` |
 | Passerelle LiteLLM 1.108.5 | `~/.cabinet-chaine/venv`, `127.0.0.1:4000` | Hors du dépôt. Journal dans `~/.cabinet-chaine/journaux/litellm.log` |
+| Clé de la passerelle | `~/.cabinet-chaine/cle-passerelle` | LiteLLM refuse de démarrer sans clé. `scripts/chaine.sh` en tire une au hasard au premier lancement. Elle ne sort pas de la machine et n'est jamais dans le dépôt |
 | Réglages Claude Code de l'exécutant | `~/.cabinet-chaine/claude-executant` | Répertoire vide et séparé : aucun greffon, aucun serveur MCP, aucune mémoire de Thomas |
 
 Rien de tout cela n'est dans le dépôt. Le dépôt ne contient que la configuration de la passerelle (`chaine/litellm.config.yaml`) et les scripts.

@@ -15,6 +15,15 @@ IDENTIFIANT="qwen3.8-27b"                         # nom servi, repris dans chain
 CONTEXTE="${CABINET_CONTEXTE:-128000}"
 JOURNAUX="$MAISON/journaux"
 PID_PASSERELLE="$MAISON/litellm.pid"
+CLE="$MAISON/cle-passerelle"                      # clé locale de la passerelle, hors du dépôt
+
+cle() {
+  if [ ! -s "$CLE" ]; then
+    mkdir -p "$MAISON"
+    (umask 077; echo "sk-$(openssl rand -hex 32)" >"$CLE")
+  fi
+  cat "$CLE"
+}
 
 repond() { nc -z -G 2 127.0.0.1 "$1" >/dev/null 2>&1; }
 
@@ -33,7 +42,7 @@ demarrer() {
     "$LMS" load "$MODELE" --identifier "$IDENTIFIANT" --context-length "$CONTEXTE" --gpu max -y
   fi
   if ! repond 4000; then
-    nohup "$LITELLM" --config "$RACINE/chaine/litellm.config.yaml" \
+    LITELLM_MASTER_KEY="$(cle)" nohup "$LITELLM" --config "$RACINE/chaine/litellm.config.yaml" \
       --host 127.0.0.1 --port 4000 >"$JOURNAUX/litellm.log" 2>&1 &
     echo $! >"$PID_PASSERELLE"
     for _ in $(seq 1 60); do repond 4000 && break; sleep 1; done

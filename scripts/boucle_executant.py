@@ -323,7 +323,7 @@ def environnement(ticket: str, modele: str | None = None) -> dict[str, str]:
         env.update(
             {
                 "ANTHROPIC_BASE_URL": f"http://127.0.0.1:{PORT_PASSERELLE}",
-                "ANTHROPIC_AUTH_TOKEN": "jeton-factice-local",  # sans secret
+                "ANTHROPIC_AUTH_TOKEN": cle_passerelle(),
                 "ANTHROPIC_MODEL": modele,
                 "ANTHROPIC_SMALL_FAST_MODEL": modele,
                 "ANTHROPIC_DEFAULT_HAIKU_MODEL": modele,
@@ -341,6 +341,12 @@ def environnement(ticket: str, modele: str | None = None) -> dict[str, str]:
             }
         )
     return env
+
+
+def cle_passerelle() -> str:
+    """Clé locale de la passerelle, créée par `scripts/chaine.sh`, hors du dépôt."""
+    fichier = Path.home() / ".cabinet-chaine" / "cle-passerelle"
+    return fichier.read_text().strip() if fichier.exists() else "jeton-factice-local"
 
 
 def consigne(ticket: dict, tentative: int, echec: str | None) -> str:

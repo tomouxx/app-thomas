@@ -4,7 +4,7 @@
 # À lancer dans un terminal dédié. Ne jamais exporter ces variables dans le terminal du relecteur.
 set -euo pipefail
 export ANTHROPIC_BASE_URL="http://127.0.0.1:4000"
-export ANTHROPIC_AUTH_TOKEN="jeton-factice-local"   # valeur sans secret, la passerelle est locale
+export ANTHROPIC_AUTH_TOKEN="$(cat "$HOME/.cabinet-chaine/cle-passerelle")"   # clé locale créée par scripts/chaine.sh
 export ANTHROPIC_MODEL="qwen-local"
 export ANTHROPIC_SMALL_FAST_MODEL="qwen-local"
 export ANTHROPIC_DEFAULT_HAIKU_MODEL="qwen-local"
