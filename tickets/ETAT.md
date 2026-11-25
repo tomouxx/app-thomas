@@ -9,7 +9,7 @@ Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqu
 | V0-03 | Journal des exécutions d'agent | V0-01 | fait | 1 | 22d0111 |
 | V1-C1 | Corrections de la vague 0 | aucun | fait | 2 | 8ebf21e |
 | V1-01 | Configuration et répertoire de données | V0-02, V0-03 | fait | 3 | 3fc5df6 |
-| V1-02 | Modèle de données | V1-01 | fait | 2 |  |
+| V1-02 | Modèle de données | V1-01 | fait | 2 | 5ce56a4 |
 | V1-03 | Dossier d'entrée et agent d'ingestion | V1-02 | à faire | 0 | |
 | V1-04 | Agenda par fichier ICS | V1-02 | à faire | 0 | |
 | V1-05 | Gabarit web et tableau de bord | V1-02 | à faire | 0 | |
