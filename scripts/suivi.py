@@ -543,6 +543,14 @@ def compter_contrats() -> int:
     return total
 
 
+def delai_fichier() -> int | None:
+    """Délai réglé pendant la vague par `.chaine/delai_session` (lu aussi par la boucle)."""
+    try:
+        return max(1, int((DEPOT.chaine / "delai_session").read_text().strip()))
+    except (OSError, ValueError):
+        return None
+
+
 def construire_etat() -> dict:
     evenements = lire_journal()
     tickets = lire_tickets()
@@ -601,7 +609,7 @@ def construire_etat() -> dict:
         "dernier_reglage": next((e for e in reversed(interventions) if e.get("auteur") != "Thomas"), None),
         "nb_contrats": compter_contrats(),
         "dernier_commit": commits[-1] if commits else None,
-        "delai_session": debuts[-1].get("delai_session") if debuts else None,
+        "delai_session": delai_fichier() or (debuts[-1].get("delai_session") if debuts else None),
     }
     chaine = {
         "modele_8080": port_ouvert(8080),
