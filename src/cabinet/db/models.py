@@ -39,7 +39,7 @@ class AgentRun(Base):
         Enum(
             RunStatus,
             native_enum=False,
-            values_callable=lambda membres: [membre.value for membre in membres],
+            values_callable=lambda members: [member.value for member in members],
         ),
         nullable=False,
         default=RunStatus.EN_COURS,

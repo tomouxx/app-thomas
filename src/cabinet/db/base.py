@@ -47,31 +47,34 @@ class TZDateTime(TypeDecorator):
         return value.replace(tzinfo=UTC).astimezone(clock.LOCAL_TZ)
 
 
-def _chemin_base() -> Path:
+def _db_path() -> Path:
     """Fichier de la base, calculé sur place (avant V1-01, specs/03 §1)."""
-    maison = os.environ.get("CABINET_HOME", "").strip()
-    home = Path(maison).expanduser().resolve() if maison else Path("~/Cabinet").expanduser()
+    cabinet_home = os.environ.get("CABINET_HOME", "").strip()
+    if cabinet_home:
+        home = Path(cabinet_home).expanduser().resolve()
+    else:
+        home = Path("~/Cabinet").expanduser()
     return home / "data" / "cabinet.db"
 
 
 @cache
-def _moteur(chemin: str) -> Engine:
+def _engine(path: str) -> Engine:
     """Moteur de SQLite, mis en cache sur le chemin (specs/05 §2.1)."""
-    moteur = create_engine(f"sqlite:///{chemin}", connect_args={"timeout": 30})
+    engine = create_engine(f"sqlite:///{path}", connect_args={"timeout": 30})
 
-    @event.listens_for(moteur, "connect")
-    def _activer_cles_etrangeres(connexion: Any, _identification: Any) -> None:
+    @event.listens_for(engine, "connect")
+    def _enable_foreign_keys(connection: Any, _identifier: Any) -> None:
         # Connexion brute de DBAPI (sqlite3), pas une connexion SQLAlchemy.
-        connexion.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA foreign_keys=ON")
 
-    return moteur
+    return engine
 
 
 def get_engine() -> Engine:
     """Moteur de la base du répertoire courant, chemin résolu à chaque appel."""
-    chemin = _chemin_base()
-    chemin.parent.mkdir(parents=True, exist_ok=True)
-    return _moteur(str(chemin))
+    path = _db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return _engine(str(path))
 
 
 def get_session() -> Session:

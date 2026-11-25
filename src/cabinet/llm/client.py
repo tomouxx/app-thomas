@@ -13,26 +13,26 @@ from pydantic import BaseModel, ValidationError
 
 from cabinet.llm.types import ConfigError, LLMError, LLMResult, Message
 
-_HOTES_LOCAUX = {"127.0.0.1", "localhost", "::1"}
+_LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 _MIME_IMAGES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 _TEMPERATURE = 0.2
-_NB_ESSAIS = 3
+_MAX_ATTEMPTS = 3
 
 
 def assert_loopback(base_url: str) -> None:
     """Refuse toute adresse de modèle qui n'est pas une adresse de bouclage (specs/04 §2)."""
     if os.environ.get("CABINET_ALLOW_REMOTE_LLM") == "1":
         return None
-    hote = urlsplit(base_url).hostname
-    if hote in _HOTES_LOCAUX:
+    host = urlsplit(base_url).hostname
+    if host in _LOCAL_HOSTS:
         return None
-    recu = hote if hote else "adresse illisible"
+    received = host if host else "adresse illisible"
     raise ConfigError(
-        f"L'adresse du modèle doit être locale (127.0.0.1, localhost ou ::1). Reçu : {recu}."
+        f"L'adresse du modèle doit être locale (127.0.0.1, localhost ou ::1). Reçu : {received}."
     )
 
 
-def _consigne_schema(schema: type[BaseModel]) -> str:
+def _schema_instruction(schema: type[BaseModel]) -> str:
     """Message système qui demande une réponse en JSON seul, avec le schéma."""
     schema_json = json.dumps(schema.model_json_schema(), ensure_ascii=False)
     return (
@@ -42,29 +42,29 @@ def _consigne_schema(schema: type[BaseModel]) -> str:
     )
 
 
-def _sans_bloc_code(texte: str) -> str:
+def _strip_code_block(text: str) -> str:
     """Retire une clôture de bloc de code autour d'une réponse JSON (specs/04 §3, étape 9)."""
-    if not texte.startswith("```"):
-        return texte
-    lignes = texte.splitlines()
-    if len(lignes) < 2 or not lignes[-1].strip().startswith("```"):
-        return texte
-    return "\n".join(lignes[1:-1]).strip()
+    if not text.startswith("```"):
+        return text
+    lines = text.splitlines()
+    if len(lines) < 2 or not lines[-1].strip().startswith("```"):
+        return text
+    return "\n".join(lines[1:-1]).strip()
 
 
-def _defauts(erreur: ValidationError) -> str:
+def _defects(error: ValidationError) -> str:
     """Liste au plus trois défauts de validation, sous la forme « champ : message »."""
-    defauts = []
-    for faute in erreur.errors()[:3]:
-        champ = ".".join(str(part) for part in faute["loc"]) or "réponse"
-        defauts.append(f"{champ} : {faute['msg']}")
-    return "; ".join(defauts)
+    defects = []
+    for flaw in error.errors()[:3]:
+        field = ".".join(str(part) for part in flaw["loc"]) or "réponse"
+        defects.append(f"{field} : {flaw['msg']}")
+    return "; ".join(defects)
 
 
-def _somme(valeurs: list[int | None]) -> int | None:
+def _total(values: list[int | None]) -> int | None:
     """Somme des valeurs non nulles, ou None quand aucune ne l'est."""
-    disponibles = [valeur for valeur in valeurs if valeur is not None]
-    return sum(disponibles) if disponibles else None
+    available = [value for value in values if value is not None]
+    return sum(available) if available else None
 
 
 class LocalLLM:
@@ -89,104 +89,122 @@ class LocalLLM:
         schema: type[BaseModel] | None = None,
         images: list[Path] | None = None,
     ) -> LLMResult:
-        corps_messages: list[dict[str, object]] = [message.model_dump() for message in messages]
-        if schema is not None:
-            corps_messages.insert(0, {"role": "system", "content": _consigne_schema(schema)})
-        if images:
-            corps_messages = self._avec_images(corps_messages, images)
+        body_messages = self._initial_messages(messages, schema, images)
+        prompt_counts: list[int | None] = []
+        completion_counts: list[int | None] = []
 
-        compteurs_prompt: list[int | None] = []
-        compteurs_compl: list[int | None] = []
-
-        for essai in range(_NB_ESSAIS):
-            texte, prompt_tokens, completion_tokens = self._appeler(corps_messages)
-            compteurs_prompt.append(prompt_tokens)
-            compteurs_compl.append(completion_tokens)
+        for attempt in range(_MAX_ATTEMPTS):
+            text, prompt_tokens, completion_tokens = self._post(body_messages)
+            prompt_counts.append(prompt_tokens)
+            completion_counts.append(completion_tokens)
 
             if schema is None:
-                return LLMResult(
-                    text=texte,
-                    prompt_tokens=_somme(compteurs_prompt),
-                    completion_tokens=_somme(compteurs_compl),
-                )
+                return self._result(text, None, prompt_counts, completion_counts)
 
             try:
-                parsed = schema.model_validate_json(_sans_bloc_code(texte))
-            except ValidationError as erreur:
-                if essai == _NB_ESSAIS - 1:
+                parsed = schema.model_validate_json(_strip_code_block(text))
+            except ValidationError as error:
+                if attempt == _MAX_ATTEMPTS - 1:
                     raise LLMError(
                         f"La réponse du modèle n'est pas un JSON conforme après 3 essais : "
-                        f"{_defauts(erreur)}."
-                    ) from erreur
-                corps_messages.append({"role": "assistant", "content": texte})
-                corps_messages.append(
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Ta réponse n'est pas un objet JSON conforme au schéma : "
-                            f"{_defauts(erreur)}. Renvoie uniquement l'objet JSON corrigé."
-                        ),
-                    }
-                )
+                        f"{_defects(error)}."
+                    ) from error
+                self._retry(body_messages, text, error)
             else:
-                return LLMResult(
-                    text=texte,
-                    parsed=parsed,
-                    prompt_tokens=_somme(compteurs_prompt),
-                    completion_tokens=_somme(compteurs_compl),
-                )
+                return self._result(text, parsed, prompt_counts, completion_counts)
 
-        # Inatteignable : la boucle renvoie ou lève à chaque essai.
-        raise LLMError("La réponse du modèle n'est pas un JSON conforme après 3 essais.")
+    def _initial_messages(
+        self,
+        messages: list[Message],
+        schema: type[BaseModel] | None,
+        images: list[Path] | None,
+    ) -> list[dict[str, object]]:
+        """Messages de départ : conversion, consigne de schéma en tête, images rattachées."""
+        body_messages: list[dict[str, object]] = [message.model_dump() for message in messages]
+        if schema is not None:
+            body_messages.insert(0, {"role": "system", "content": _schema_instruction(schema)})
+        if images:
+            body_messages = self._with_images(body_messages, images)
+        return body_messages
 
-    def _appeler(
-        self, corps_messages: list[dict[str, object]]
+    def _result(
+        self,
+        text: str,
+        parsed: BaseModel | None,
+        prompt_counts: list[int | None],
+        completion_counts: list[int | None],
+    ) -> LLMResult:
+        """Résultat avec les compteurs additionnés sur tous les essais."""
+        return LLMResult(
+            text=text,
+            parsed=parsed,
+            prompt_tokens=_total(prompt_counts),
+            completion_tokens=_total(completion_counts),
+        )
+
+    def _retry(
+        self, body_messages: list[dict[str, object]], text: str, error: ValidationError
+    ) -> None:
+        """Ajoute la réponse reçue et la demande de correction au dialogue (specs/04 §3, étape 11)."""
+        body_messages.append({"role": "assistant", "content": text})
+        body_messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"Ta réponse n'est pas un objet JSON conforme au schéma : "
+                    f"{_defects(error)}. Renvoie uniquement l'objet JSON corrigé."
+                ),
+            }
+        )
+
+    def _post(
+        self, body_messages: list[dict[str, object]]
     ) -> tuple[str, int | None, int | None]:
-        corps = {"model": self.model, "messages": corps_messages, "temperature": _TEMPERATURE}
+        body = {"model": self.model, "messages": body_messages, "temperature": _TEMPERATURE}
         try:
-            reponse = self._client.post(f"{self.base_url}/chat/completions", json=corps)
-        except httpx.TimeoutException as erreur:
+            response = self._client.post(f"{self.base_url}/chat/completions", json=body)
+        except httpx.TimeoutException as error:
             raise LLMError(
                 f"Le modèle local n'a pas répondu en {self.timeout_s} secondes."
-            ) from erreur
-        except httpx.HTTPError as erreur:
-            raise LLMError(f"Le serveur du modèle est injoignable à {self.base_url}.") from erreur
+            ) from error
+        except httpx.HTTPError as error:
+            raise LLMError(f"Le serveur du modèle est injoignable à {self.base_url}.") from error
 
-        if reponse.status_code >= 400:
-            raise LLMError(f"Le modèle local a répondu par une erreur HTTP {reponse.status_code}.")
+        if response.status_code >= 400:
+            raise LLMError(f"Le modèle local a répondu par une erreur HTTP {response.status_code}.")
 
         try:
-            donnees = reponse.json()
-            contenu = donnees["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError, ValueError) as erreur:
-            raise LLMError("Le modèle local a renvoyé une réponse inattendue.") from erreur
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError, ValueError) as error:
+            raise LLMError("Le modèle local a renvoyé une réponse inattendue.") from error
 
-        texte = contenu.strip() if isinstance(contenu, str) else ""
-        usage = donnees.get("usage")
+        text = content.strip() if isinstance(content, str) else ""
+        usage = data.get("usage")
         prompt_tokens = usage.get("prompt_tokens") if isinstance(usage, dict) else None
         completion_tokens = usage.get("completion_tokens") if isinstance(usage, dict) else None
-        return texte, prompt_tokens, completion_tokens
+        return text, prompt_tokens, completion_tokens
 
-    def _avec_images(
-        self, corps_messages: list[dict[str, object]], images: list[Path]
+    def _with_images(
+        self, body_messages: list[dict[str, object]], images: list[Path]
     ) -> list[dict[str, object]]:
-        for index in range(len(corps_messages) - 1, -1, -1):
-            if corps_messages[index]["role"] != "user":
+        for index in range(len(body_messages) - 1, -1, -1):
+            if body_messages[index]["role"] != "user":
                 continue
             elements: list[dict[str, object]] = [
-                {"type": "text", "text": corps_messages[index]["content"]}
+                {"type": "text", "text": body_messages[index]["content"]}
             ]
             for image in images:
                 elements.append(
-                    {"type": "image_url", "image_url": {"url": self._uri_de_donnees(image)}}
+                    {"type": "image_url", "image_url": {"url": self._data_uri(image)}}
                 )
-            corps_messages[index] = {**corps_messages[index], "content": elements}
-            return corps_messages
+            body_messages[index] = {**body_messages[index], "content": elements}
+            return body_messages
         raise ValueError("Aucun message utilisateur auquel rattacher les images.")
 
-    def _uri_de_donnees(self, image: Path) -> str:
+    def _data_uri(self, image: Path) -> str:
         mime = _MIME_IMAGES.get(image.suffix.lower())
         if mime is None:
             raise ValueError(f"Extension d'image non prise en charge : {image.suffix or 'aucune'}.")
-        donnees = base64.b64encode(image.read_bytes()).decode("ascii")
-        return f"data:{mime};base64,{donnees}"
+        data = base64.b64encode(image.read_bytes()).decode("ascii")
+        return f"data:{mime};base64,{data}"

@@ -37,10 +37,10 @@ def record_run(session: Session, agent: str, target_ref: str = "") -> Iterator[A
     session.commit()  # la ligne est visible par un autre processus pendant l'exécution
     try:
         yield execution
-    except BaseException as erreur:  # interruption comprise (specs/05 §2.2)
+    except BaseException as error:  # interruption comprise (specs/05 §2.2)
         session.rollback()
         execution = session.get(AgentRun, execution.id)
-        message = str(erreur) or type(erreur).__name__
+        message = str(error) or type(error).__name__
         execution.status = RunStatus.ERREUR
         execution.error = message[:2000]
         execution.ended_at = clock.now()

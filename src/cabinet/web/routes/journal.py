@@ -13,14 +13,14 @@ from sqlalchemy import select
 from cabinet.db.base import get_session
 from cabinet.db.models import AgentRun
 
-routeur = APIRouter()
+router = APIRouter()
 
 
-@routeur.get("/journal")
-def journal(request: Request) -> str:
+@router.get("/journal")
+def journal(request: Request):
     """Les 100 dernières exécutions, la plus récente en premier."""
     with get_session() as session:
-        executions = (
+        runs = (
             session.scalars(
                 select(AgentRun)
                 .order_by(AgentRun.started_at.desc(), AgentRun.id.desc())
@@ -28,9 +28,9 @@ def journal(request: Request) -> str:
             )
             .all()
         )
-    gabarits = request.app.state.templates
-    return gabarits.TemplateResponse(
+    templates = request.app.state.templates
+    return templates.TemplateResponse(
         request,
         "journal.html",
-        {"executions": executions, "message": request.query_params.get("message")},
+        {"executions": runs, "message": request.query_params.get("message")},
     )

@@ -17,10 +17,10 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Cabinet", docs_url=None, redoc_url=None, openapi_url=None)
     init_db()
     app.state.templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-    app.include_router(routes_journal.routeur)
+    app.include_router(routes_journal.router)
 
     @app.get("/sante")
-    def sante() -> dict[str, str]:
+    def health() -> dict[str, str]:
         """État de l'application et version du paquet."""
         return {"statut": "ok", "version": version("cabinet")}
 

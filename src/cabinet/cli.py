@@ -36,14 +36,14 @@ def llm_test() -> None:
     # Avant V1-01, les valeurs sont celles de specs/03 §3, écrites ici.
     llm = LocalLLM(base_url="http://127.0.0.1:8080/v1", model="qwen-local", timeout_s=900)
     try:
-        resultat = llm.complete(
+        result = llm.complete(
             [Message(role="user", content='Réponds par l\'objet JSON {"ok": true}.')],
             schema=Ping,
         )
-    except (ConfigError, LLMError) as erreur:
-        typer.echo(str(erreur), err=True)
-        raise typer.Exit(code=1) from erreur
-    if resultat.parsed is not None and resultat.parsed.ok:
+    except (ConfigError, LLMError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=1) from error
+    if result.parsed is not None and result.parsed.ok:
         typer.echo("OK")
     else:
         typer.echo('Le modèle local n\'a pas répondu par {"ok": true}.', err=True)
