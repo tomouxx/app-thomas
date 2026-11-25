@@ -7,7 +7,6 @@ chemin est le seul état global toléré hors de la configuration.
 
 from __future__ import annotations
 
-import os
 from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
@@ -18,6 +17,7 @@ from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.types import TypeDecorator
 
 from cabinet import clock
+from cabinet.config import paths
 
 
 class Base(DeclarativeBase):
@@ -48,13 +48,8 @@ class TZDateTime(TypeDecorator):
 
 
 def _db_path() -> Path:
-    """Fichier de la base, calculé sur place (avant V1-01, specs/03 §1)."""
-    cabinet_home = os.environ.get("CABINET_HOME", "").strip()
-    if cabinet_home:
-        home = Path(cabinet_home).expanduser().resolve()
-    else:
-        home = Path("~/Cabinet").expanduser()
-    return home / "data" / "cabinet.db"
+    """Fichier de la base, via les chemins du répertoire de données (specs/03 §1)."""
+    return paths().db_file
 
 
 @cache
