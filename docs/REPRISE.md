@@ -36,12 +36,16 @@ Rien de tout cela n'est dans le dépôt. Le dépôt ne contient que la configura
 ## 3. Lancer une vague
 
 ```
-scripts/chaine.sh demarrer                 # modèle sur 8080, passerelle sur 4000
-nohup python3 scripts/suivi.py >> .chaine/suivi.log 2>&1 &
-nohup python3 scripts/relecteurs.py >> .chaine/revues/veille.log 2>&1 &
+scripts/chaine.sh demarrer                 # modèle sur 8080 (la passerelle lancée ici meurt avec le terminal)
+scripts/lancer.sh passerelle               # passerelle sur 4000, tâche launchd
+scripts/lancer.sh suivi
+scripts/lancer.sh relecteurs
 git switch vague-N                         # la phase A du relecteur doit être faite
-nohup caffeinate -i python3 scripts/boucle_executant.py N >> .chaine/boucle.log 2>&1 &
+scripts/lancer.sh boucle N                 # sous caffeinate -i
+scripts/lancer.sh etat                     # tâches en cours
 ```
+
+`scripts/lancer.sh` fait de chaque processus une tâche launchd de la session macOS. Lancés par `nohup … &` depuis une session Claude, même détachés par `setsid`, la boucle, la passerelle et le suivi s'arrêtaient avec elle sans laisser d'évènement d'arrêt (25.11.2026, deux fois). launchd ne relance pas une tâche arrêtée. `scripts/lancer.sh arreter boucle` arrête la boucle proprement.
 
 `caffeinate -i` empêche la mise en veille tant que la boucle tourne. Il ne protège ni d'un capot fermé ni d'un redémarrage : dans ces deux cas la boucle et les serveurs s'arrêtent, et il faut reprendre comme en section 6. Une vague dure plusieurs heures, mieux vaut brancher la machine au secteur.
 
