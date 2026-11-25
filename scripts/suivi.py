@@ -1802,6 +1802,7 @@ a.mono,td.nw{white-space:nowrap!important}
 .tri button:last-child{border-right:0} .tri button:hover{background:var(--surface-2)}
 .tri button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
 td .tri{margin-left:0}
+@media (max-width:1200px){td .tri{flex-direction:column;border-radius:8px} td .tri button{border-right:0;border-bottom:1px solid var(--trait);text-align:left} td .tri button:last-child{border-bottom:0}}
 .matrice{display:grid;gap:3px;overflow-x:auto}
 .matrice .rang{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:center}
 .matrice .rang>a{font:600 12px var(--mono);color:var(--accent);text-decoration:none}
@@ -1830,6 +1831,7 @@ dialog::backdrop{background:rgba(10,10,25,.45)}
 .pil-g{border-top:1px solid var(--trait);padding:10px 0}
 .pil-g h3{margin:0 0 6px;font-size:13px} .pil-g .l{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pil-g p{margin:0 0 8px;font-size:13px;color:var(--doux)}
+#avis{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:8px 14px;border-radius:8px;background:var(--surface-2);border:1px solid var(--trait);font-size:13px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.15)} #avis.ko{border-color:var(--critique);color:var(--critique)}
 #pil-message{font-size:13px;min-height:20px;padding-top:8px} #pil-message.ok{color:var(--bon)} #pil-message.ko{color:var(--critique)}
 .cartes,#fiche,#revues,#detail{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
 .carte{min-width:0}
@@ -2405,16 +2407,29 @@ async function rafraichir(){
    Suite : alertes, rejeu, pensée en direct, comparaison, fiche de ticket,
    tri des constats, couverture, mesures, carte du code, garde, pilotage
    ==================================================================== */
-const JETON = "__JETON__";
+let JETON = "__JETON__";
 const tampon = {};
 async function charger(cle, url, ms = 15000, force = false){
   const c = tampon[cle]; if (!force && c && Date.now() - c.t < ms) return c.v;
   const v = await api(url).catch(() => null); if (v) tampon[cle] = {t: Date.now(), v}; return v || (c && c.v);
 }
 function poser(sel, html){ const el = typeof sel === "string" ? $(sel) : sel; if (!el || el._h === html) return false; el._h = html; el.innerHTML = html; return true; }
-async function poster(url, corps){
-  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json", "X-Suivi-Jeton":JETON}, body:JSON.stringify(corps)});
+/* Un onglet ouvert avant un redémarrage du suivi garde l'ancien jeton : sur un refus,
+   la page reprend le jeton du serveur et renvoie la requête une fois. */
+async function poster(url, corps, reessai = true){
+  let r;
+  try { r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json", "X-Suivi-Jeton":JETON}, body:JSON.stringify(corps)}); }
+  catch { return {ok:false, message:"serveur de suivi injoignable"}; }
+  if (r.status === 403 && reessai){
+    const j = await api("/api/jeton").catch(() => null);
+    if (j && j.jeton && j.jeton !== JETON){ JETON = j.jeton; return poster(url, corps, false); }
+  }
   return r.json().catch(() => ({ok:false, message:"réponse illisible"}));
+}
+function avis(texte, ko = true){
+  let n = $("#avis"); if (!n){ n = document.createElement("div"); n.id = "avis"; n.setAttribute("role", "status"); document.body.append(n); }
+  n.textContent = texte; n.className = ko ? "ko" : ""; n.hidden = false;
+  clearTimeout(avis.t); avis.t = setTimeout(() => { n.hidden = true; }, 6000);
 }
 const tuiles = L => L.map(([v,l]) => `<div class="kpi"><b>${v === "" || v == null ? "–" : v}</b><span>${esc(l)}</span></div>`).join("");
 const STATUT_C = {confirme:"confirmé", rejete:"rejeté", incertain:"incertain"};
@@ -2551,6 +2566,7 @@ document.addEventListener("click", async e => {
     const dejala = b.getAttribute("aria-pressed") === "true";
     const r = await poster("/api/tri", {cle: b.parentElement.dataset.cle, decision: dejala ? "" : b.dataset.d});
     if (r.ok){ b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", !dejala && x === b)); delete tampon["fiche:" + ficheSel]; revuesSig = ""; rafraichir(); }
+    else avis("Décision non enregistrée : " + (r.message || "erreur inconnue") + ". Rechargez la page si cela se répète.");
     return; }
   const t = e.target.closest("[data-fiche]"); if (t){ e.preventDefault(); ouvrirFiche(t.dataset.fiche); return; }
   const r = e.target.closest("[data-aller-run]"); if (r){ e.preventDefault(); runSel = r.dataset.allerRun; document.querySelector('[data-onglet="runs"]').click(); detail(); }
@@ -2862,6 +2878,7 @@ class Gestionnaire(BaseHTTPRequestHandler):
 
         routes = {
             "/api/etat": construire_etat,
+            "/api/jeton": lambda: {"jeton": JETON},
             "/etat.json": construire_etat,
             "/api/revues": rapports_avec_tri,
             "/api/couverture": couverture,
