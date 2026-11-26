@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block titre %}Brouillons — Cabinet{% endblock %}
+
+{% block contenu %}
+<h1>Brouillons</h1>
+
+<p>L'application n'envoie rien : c'est vous qui envoyez, depuis votre messagerie.</p>
+
+{% for group in groups %}
+  {% if group.drafts %}
+  <section aria-label="{{ group.label }}">
+    <h2>{{ group.label }}</h2>
+    <ul class="brouillons">
+      {% for draft in group.drafts %}
+        <li>
+          <p class="fichier">
+            {{ draft.kind }} — {{ draft.recipients }} — créé le {{ draft.created_at }}
+          </p>
+          <h3>{{ draft.subject }}</h3>
+          <pre class="corps">{{ draft.body }}</pre>
+          {% if draft.status == "brouillon" %}
+            <form method="post" action="/brouillons/{{ draft.id }}">
+              <label>Objet
+                <input type="text" name="subject" value="{{ draft.subject }}">
+              </label>
+              <label>Destinataires (adresses séparées par une virgule)
+                <input type="text" name="recipients" value="{{ draft.recipients }}">
+              </label>
+              <label>Corps
+                <textarea name="body" rows="6">{{ draft.body }}</textarea>
+              </label>
+              <button type="submit">Modifier</button>
+            </form>
+            <form method="post" action="/brouillons/{{ draft.id }}/valider">
+              <button type="submit">Valider</button>
+            </form>
+            <form method="post" action="/brouillons/{{ draft.id }}/rejeter">
+              <button type="submit">Rejeter</button>
+            </form>
+          {% endif %}
+          {% if draft.status == "valide" %}
+            <p>
+              <a href="{{ draft.mailto }}">Ouvrir dans la messagerie</a>
+            </p>
+            <textarea id="message-{{ draft.id }}" rows="6" readonly>{{ draft.subject }}
+
+{{ draft.body }}</textarea>
+            <button type="button" data-copy="message-{{ draft.id }}">Copier</button>
+            <form method="post" action="/brouillons/{{ draft.id }}/envoye">
+              <button type="submit">Marquer envoyé</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+{% endfor %}
+<script src="/static/app.js"></script>
+{% endblock %}

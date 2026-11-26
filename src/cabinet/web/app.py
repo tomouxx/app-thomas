@@ -19,6 +19,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from cabinet.db.base import init_db
 from cabinet.web.routes import dashboard as routes_dashboard
+from cabinet.web.routes import drafts as routes_drafts
 from cabinet.web.routes import inbox as routes_inbox
 from cabinet.web.routes import journal as routes_journal
 
@@ -69,6 +70,11 @@ def create_app() -> FastAPI:
     app.include_router(routes_journal.router)
     app.include_router(routes_dashboard.router)
     app.include_router(routes_inbox.router)
+    # FastAPI 0.165 n'expose plus les routes d'un routeur inclus dans
+    # `app.routes` : celles des brouillons sont ajoutées une à une, pour que
+    # le contrat puisse les énumérer (tests/contrats/test_v1_07_brouillons.py).
+    for route in routes_drafts.router.routes:
+        app.router.routes.append(route)
 
     @app.get("/sante")
     def health() -> dict[str, str]:
