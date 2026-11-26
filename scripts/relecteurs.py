@@ -467,7 +467,9 @@ def relire(ticket: str, commit: str, tentative: int, args) -> dict:
             c["id"] = f"r{rang}-{c['id']}"
     cout = round(sum(a.get("cout", 0) for a in angles) + verif.get("cout", 0), 4)
     # Un angle qui n'a pas pu relire laisse un trou : le ticket ne peut pas sortir « ok ».
-    incomplets = [a["agent"] for a in angles if a["verdict"] == "erreur"]
+    # Un angle qui réserve sans aucun constat n'a pas relu non plus (réponse coupée, V1-02).
+    incomplets = [a["agent"] for a in angles
+                  if a["verdict"] == "erreur" or (a["verdict"] != "ok" and not a["constats"])]
     verdict, synthese = verif["verdict"], verif.get("synthese", "")
     if incomplets:
         verdict = "reserves" if verdict == "ok" else verdict
