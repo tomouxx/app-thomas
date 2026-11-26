@@ -133,7 +133,7 @@ def test_c3_la_route_du_journal_n_annonce_pas_une_chaine() -> None:
 # --- Critère 4 -------------------------------------------------------------
 
 
-def tests_de_record_run() -> list[ast.FunctionDef]:
+def _record_run_tests() -> list[ast.FunctionDef]:
     fichier = RACINE / "tests" / "unit" / "test_journal.py"
     assert fichier.is_file(), "tests/unit/test_journal.py a disparu"
     return [
@@ -144,12 +144,12 @@ def tests_de_record_run() -> list[ast.FunctionDef]:
 
 
 def test_c4_un_test_unitaire_couvre_l_interruption() -> None:
-    assert any("KeyboardInterrupt" in ast.unparse(t) for t in tests_de_record_run())
+    assert any("KeyboardInterrupt" in ast.unparse(t) for t in _record_run_tests())
 
 
 def test_c4_un_test_unitaire_couvre_l_annulation_du_travail_en_attente() -> None:
     candidats = [
-        t for t in tests_de_record_run()
+        t for t in _record_run_tests()
         if ".add(" in ast.unparse(t) and "raises" in ast.unparse(t)
     ]
     assert candidats, (
