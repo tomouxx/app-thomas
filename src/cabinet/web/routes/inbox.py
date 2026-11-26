@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -65,17 +65,23 @@ def inbox_page(request: Request) -> Any:
 
 
 @router.post("/entree/{item_id}/rattacher")
-async def attach(request: Request, item_id: int) -> Any:
+def attach(
+    request: Request,
+    item_id: int,
+    meeting_id: Annotated[str, Form()] = "",
+    title: Annotated[str, Form(alias="titre")] = "",
+    day: Annotated[str, Form(alias="date")] = "",
+    consent: Annotated[str, Form(alias="consentement")] = "",
+) -> Any:
     """Rattache l'élément à une réunion, existante ou hors agenda (specs/08 §3.3)."""
-    form = await request.form()
     with get_session() as session:
         item = session.get(InboxItem, item_id)
         if item is None:
             return _error(request, 404, "Élément inconnu.")
-        refusal = _attach_refusal(item, form)
+        refusal = _attach_refusal(item, consent)
         if refusal is not None:
             return _error(request, *refusal)
-        meeting, refusal = _target_meeting(session, form)
+        meeting, refusal = _target_meeting(session, meeting_id, title, day)
         if meeting is None:
             assert refusal is not None
             return _error(request, *refusal)
@@ -146,50 +152,40 @@ def _item_view(item: InboxItem, session: Session) -> dict[str, Any]:
     }
     if item.status in (InboxStatus.A_RATTACHER, InboxStatus.CONSENTEMENT_REQUIS):
         view["suggestions"] = [
-            {"id": meeting.id, "title": meeting.title} for meeting, _ in suggest_meetings(session, item)
+            {"id": meeting.id, "title": meeting.title}
+            for meeting, _ in suggest_meetings(session, item)
         ]
     return view
 
 
-def _attach_refusal(item: InboxItem, form: Any) -> tuple[int, str] | None:
+def _attach_refusal(item: InboxItem, consent: str) -> tuple[int, str] | None:
     """Contrôles avant tout changement (specs/08 §3.3) : état, nature, consentement."""
     if item.status not in ATTACHABLE_STATUSES:
         return 409, "Cet élément ne peut plus être rattaché."
     if item.kind in NON_ATTACHABLE_KINDS:
         return 409, "Ce type de fichier ne se rattache pas à une réunion."
-    if item.kind == InboxKind.AUDIO and not _consent_checked(form):
+    if item.kind == InboxKind.AUDIO and consent == "":
         return 400, "Le consentement des participants est requis pour un enregistrement."
     return None
 
 
-def _consent_checked(form: Any) -> bool:
-    """La case est cochée si le formulaire porte une valeur non vide."""
-    raw = form.get("consentement")
-    return isinstance(raw, str) and raw != ""
-
-
-def _target_meeting(session: Session, form: Any) -> tuple[Meeting | None, tuple[int, str] | None]:
+def _target_meeting(
+    session: Session, meeting_id: str, title: str, day: str
+) -> tuple[Meeting | None, tuple[int, str] | None]:
     """La réunion de rattachement : une existante, ou une nouvelle hors agenda."""
-    raw_id = form.get("meeting_id")
-    if isinstance(raw_id, str) and raw_id:
-        meeting = _existing_meeting(session, raw_id)
+    if meeting_id:
+        meeting = _existing_meeting(session, meeting_id)
         if meeting is None:
             return None, (404, "Réunion inconnue.")
         return meeting, None
-    title = _form_text(form, "titre").strip()
-    raw_day = _form_text(form, "date")
-    if not title or not raw_day:
+    title = title.strip()
+    if not title or not day:
         return None, (400, "Une réunion hors agenda exige un titre et une date.")
     try:
-        day = date.fromisoformat(raw_day)
+        parsed_day = date.fromisoformat(day)
     except ValueError:
         return None, (400, "La date de la réunion est illisible.")
-    return _off_agenda_meeting(session, title, day), None
-
-
-def _form_text(form: Any, name: str) -> str:
-    raw = form.get(name)
-    return raw if isinstance(raw, str) else ""
+    return _off_agenda_meeting(session, title, parsed_day), None
 
 
 def _existing_meeting(session: Session, raw_id: str) -> Meeting | None:

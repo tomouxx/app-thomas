@@ -24,7 +24,7 @@ class IngestionAgent:
 
     name = "ingestion"
 
-    def __init__(self, inbox: Inbox):
+    def __init__(self, inbox: Inbox) -> None:
         self._inbox = inbox
 
     def run(self, session: Session) -> AgentOutcome:

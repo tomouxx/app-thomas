@@ -16,7 +16,7 @@ import pytest
 from cabinet.config import DEFAULT_SETTINGS_TOML, load_settings, paths, set_cra_deadline
 from cabinet.llm.types import ConfigError
 
-RACINE = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def write_settings(content: str) -> Path:
@@ -125,20 +125,20 @@ def test_echeance_absente_avec_none_ne_cree_pas_de_fichier() -> None:
 
 
 def test_paths_construit_les_cinq_sous_dossiers() -> None:
-    chemins = paths()
-    assert chemins.inbox == chemins.home / "entree"
-    assert chemins.processed == chemins.home / "traite"
-    assert chemins.drafts == chemins.home / "brouillons"
-    assert chemins.config == chemins.home / "config"
-    assert chemins.data == chemins.home / "data"
+    data_paths = paths()
+    assert data_paths.inbox == data_paths.home / "entree"
+    assert data_paths.processed == data_paths.home / "traite"
+    assert data_paths.drafts == data_paths.home / "brouillons"
+    assert data_paths.config == data_paths.home / "config"
+    assert data_paths.data == data_paths.home / "data"
 
 
 def test_paths_porte_les_fichiers_connus() -> None:
-    chemins = paths()
-    assert chemins.settings_file == chemins.config / "reglages.toml"
-    assert chemins.roster_file == chemins.config / "equipe.yaml"
-    assert chemins.db_file == chemins.data / "cabinet.db"
-    assert chemins.lock_file == chemins.data / "pipeline.lock"
+    data_paths = paths()
+    assert data_paths.settings_file == data_paths.config / "reglages.toml"
+    assert data_paths.roster_file == data_paths.config / "equipe.yaml"
+    assert data_paths.db_file == data_paths.data / "cabinet.db"
+    assert data_paths.lock_file == data_paths.data / "pipeline.lock"
 
 
 def test_paths_ne_cree_rien_sur_le_disque(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -169,29 +169,29 @@ def test_paths_relit_la_variable_a_chaque_appel(
 def test_paths_repli_sur_tilde_cabinet_sans_variable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    faux_domicile = tmp_path / "domicile"
-    faux_domicile.mkdir()
-    monkeypatch.setenv("HOME", str(faux_domicile))
+    fake_home = tmp_path / "domicile"
+    fake_home.mkdir()
+    monkeypatch.setenv("HOME", str(fake_home))
     monkeypatch.delenv("CABINET_HOME")
-    assert paths().home == faux_domicile / "Cabinet"
-    assert list(faux_domicile.iterdir()) == []
+    assert paths().home == fake_home / "Cabinet"
+    assert list(fake_home.iterdir()) == []
 
 
 # --- cabinet init (specs/03 §5.2) -------------------------------------------
 
 
 def test_init_cree_les_cinq_dossiers_et_le_fichier_par_defaut() -> None:
-    resultat = cabinet("init")
-    assert resultat.exit_code == 0, resultat.output
-    for nom in ("entree", "traite", "brouillons", "config", "data"):
-        assert (paths().home / nom).is_dir(), nom
+    result = cabinet("init")
+    assert result.exit_code == 0, result.output
+    for name in ("entree", "traite", "brouillons", "config", "data"):
+        assert (paths().home / name).is_dir(), name
     assert paths().settings_file.is_file()
 
 
 def test_init_ecrit_le_texte_par_defaut_identique_a_l_exemple_du_depot() -> None:
     assert cabinet("init").exit_code == 0
     ecrit = paths().settings_file.read_text(encoding="utf-8")
-    exemple = (RACINE / "exemples" / "reglages.exemple.toml").read_text(encoding="utf-8")
+    exemple = (REPO_ROOT / "exemples" / "reglages.exemple.toml").read_text(encoding="utf-8")
     assert ecrit == DEFAULT_SETTINGS_TOML
     assert ecrit == exemple
 
@@ -213,9 +213,9 @@ def test_init_ne_vide_pas_les_dossiers() -> None:
 
 
 def test_init_affiche_le_repertoire_et_le_fichier_cree() -> None:
-    resultat = cabinet("init")
-    assert str(paths().home) in resultat.output
-    assert "reglages.toml" in resultat.output
+    result = cabinet("init")
+    assert str(paths().home) in result.output
+    assert "reglages.toml" in result.output
 
 
 def test_init_ne_cree_ni_equipe_ni_agenda() -> None:
@@ -230,16 +230,16 @@ def test_init_ne_cree_ni_equipe_ni_agenda() -> None:
 def test_llm_test_refuse_une_adresse_distante_avant_toute_connexion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    tentatives: list[object] = []
+    attempts: list[object] = []
 
-    def connexion_interdite(*args: object, **kwargs: object) -> None:
-        tentatives.append(args)
+    def blocked_connect(*args: object, **kwargs: object) -> None:
+        attempts.append(args)
         raise OSError("connexion interdite pendant les tests")
 
-    monkeypatch.setattr(socket.socket, "connect", connexion_interdite)
-    monkeypatch.setattr(socket, "create_connection", connexion_interdite)
+    monkeypatch.setattr(socket.socket, "connect", blocked_connect)
+    monkeypatch.setattr(socket, "create_connection", blocked_connect)
     write_settings('[llm]\nbase_url = "https://api.exemple.test/v1"\n')
-    resultat = cabinet("llm-test")
-    assert tentatives == []
-    assert resultat.exit_code == 1
-    assert "api.exemple.test" in resultat.stderr
+    result = cabinet("llm-test")
+    assert attempts == []
+    assert result.exit_code == 1
+    assert "api.exemple.test" in result.stderr

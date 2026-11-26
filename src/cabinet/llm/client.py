@@ -145,7 +145,8 @@ class LocalLLM:
     def _retry(
         self, body_messages: list[dict[str, object]], text: str, error: ValidationError
     ) -> None:
-        """Ajoute la réponse reçue et la demande de correction au dialogue (specs/04 §3, étape 11)."""
+        """Ajoute la réponse reçue et la demande de correction au dialogue
+        (specs/04 §3, étape 11)."""
         body_messages.append({"role": "assistant", "content": text})
         body_messages.append(
             {

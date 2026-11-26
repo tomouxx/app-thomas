@@ -275,8 +275,8 @@ def _append_cra_section(lines: list[str], day: date) -> list[str]:
 def _write_atomic(path: Path, content: str) -> None:
     """Fichier temporaire du même dossier, puis renommage sur reglages.toml."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, nom = tempfile.mkstemp(dir=path.parent)
-    temporary = Path(nom)
+    descriptor, name = tempfile.mkstemp(dir=path.parent)
+    temporary = Path(name)
     try:
         with os.fdopen(descriptor, "wb") as stream:
             stream.write(content.encode("utf-8"))

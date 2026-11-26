@@ -57,7 +57,11 @@ def init() -> None:
 @app.command()
 def run() -> None:
     """Exécute le pipeline et affiche une ligne par agent (specs/03 §5.3)."""
-    settings = load_settings()
+    try:
+        settings = load_settings()
+    except ConfigError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=1) from error
     init_db()
     pipeline = build_pipeline(settings)
     try:

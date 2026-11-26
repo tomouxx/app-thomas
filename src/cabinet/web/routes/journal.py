@@ -8,6 +8,7 @@ sur une base vide.
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
 from cabinet.db.base import get_session
@@ -17,7 +18,7 @@ router = APIRouter()
 
 
 @router.get("/journal")
-def journal(request: Request):
+def journal(request: Request) -> HTMLResponse:
     """Les 100 dernières exécutions, la plus récente en premier."""
     with get_session() as session:
         runs = (

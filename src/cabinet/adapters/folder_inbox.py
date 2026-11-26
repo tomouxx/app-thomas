@@ -24,7 +24,7 @@ _DATE_PREFIX_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})_")
 class FolderInbox:
     """Lit les fichiers déposés dans un dossier d'entrée (specs/05 §5.2)."""
 
-    def __init__(self, root: Path):
+    def __init__(self, root: Path) -> None:
         self._root = root
 
     def scan(self) -> list[InboxFile]:
@@ -36,7 +36,9 @@ class FolderInbox:
         for entry in sorted(self._root.iterdir(), key=lambda item: item.name):
             if _should_skip(entry, now_ts):
                 continue
-            files.append(_to_inbox_file(entry))
+            file = _to_inbox_file(entry)
+            if file is not None:
+                files.append(file)
         return files
 
 
@@ -50,11 +52,20 @@ def _should_skip(path: Path, now_ts: float) -> bool:
     return now_ts - path.stat().st_mtime < _COPY_DELAY_S
 
 
-def _to_inbox_file(path: Path) -> InboxFile:
-    """Un `InboxFile` pour un fichier du dossier, avec le chemin absolu."""
+def _to_inbox_file(path: Path) -> InboxFile | None:
+    """Un `InboxFile` pour un fichier du dossier, avec le chemin absolu.
+
+    None si l'empreinte ne peut pas être calculée (fichier illisible) : le
+    fichier est laissé de côté, sans erreur, et repris au passage suivant
+    (décision Q2, specs/05 §5.2).
+    """
+    try:
+        fingerprint = _sha256_of(path)
+    except OSError:
+        return None
     return InboxFile(
         path=path.resolve(),
-        sha256=_sha256_of(path),
+        sha256=fingerprint,
         kind=_kind_of(path.name).value,
         name_date=_date_from_name(path.name),
         size=path.stat().st_size,

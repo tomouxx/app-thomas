@@ -46,43 +46,43 @@ def session():
         yield ouverte
 
 
-def _serie(session, cle="hebdos") -> Series:
+def _series(session, key="hebdos") -> Series:
     """Une série à laquelle rattacher des réunions."""
-    serie = Series(key=cle, label="Hebdo")
-    session.add(serie)
+    series = Series(key=key, label="Hebdo")
+    session.add(series)
     session.flush()
-    return serie
+    return series
 
 
-def _reunion(session, serie: Series | None = None) -> Meeting:
+def _meeting(session, series: Series | None = None) -> Meeting:
     """Une réunion sans évènement."""
-    if serie is None:
-        serie = _serie(session)
-    reunion = Meeting(series_id=serie.id, title="Hebdo", date=date(2026, 11, 24))
-    session.add(reunion)
+    if series is None:
+        series = _series(session)
+    meeting = Meeting(series_id=series.id, title="Hebdo", date=date(2026, 11, 24))
+    session.add(meeting)
     session.flush()
-    return reunion
+    return meeting
 
 
 def test_date_de_reunion_est_une_pure_date(session) -> None:
     """`meeting.date` est une `datetime.date` pure, sans heure (specs/02 §2.5)."""
-    reunion = _reunion(session)
+    meeting = _meeting(session)
     session.commit()
 
-    relue = session.get(Meeting, reunion.id)
+    relue = session.get(Meeting, meeting.id)
     assert relue is not None
     assert type(relue.date) is date
 
 
 def test_supprimer_un_compte_rendu_par_le_modele_enleve_decisions_et_actions(session) -> None:
     """Cascade ORM : supprimer un compte rendu enlève ses décisions et actions (specs/02 §4)."""
-    reunion = _reunion(session)
-    compte_rendu = Minutes(meeting_id=reunion.id, version=1, summary="Résumé", created_at=MOMENT)
+    meeting = _meeting(session)
+    compte_rendu = Minutes(meeting_id=meeting.id, version=1, summary="Résumé", created_at=MOMENT)
     session.add(compte_rendu)
     session.flush()
-    session.add(Decision(meeting_id=reunion.id, minutes_id=compte_rendu.id, text="D", quote="Q"))
+    session.add(Decision(meeting_id=meeting.id, minutes_id=compte_rendu.id, text="D", quote="Q"))
     session.add(
-        ActionItem(meeting_id=reunion.id, minutes_id=compte_rendu.id, description="A", quote="Q")
+        ActionItem(meeting_id=meeting.id, minutes_id=compte_rendu.id, description="A", quote="Q")
     )
     session.commit()
 
@@ -90,23 +90,23 @@ def test_supprimer_un_compte_rendu_par_le_modele_enleve_decisions_et_actions(ses
     session.commit()
 
     for table in ("minutes", "decision", "action_item"):
-        nombre = session.execute(text(f"SELECT count(*) FROM {table}")).scalar_one()
-        assert nombre == 0, table
+        count = session.execute(text(f"SELECT count(*) FROM {table}")).scalar_one()
+        assert count == 0, table
 
 
 def test_supprimer_un_evenement_par_le_modele_detache_la_reunion(session) -> None:
     """Supprimer un évènement par le modèle détache la réunion (specs/02 §4)."""
-    serie = _serie(session)
-    evenement = Event(uid="u1", title="Hebdo", start=MOMENT, end=MOMENT)
-    session.add(evenement)
+    series = _series(session)
+    event = Event(uid="u1", title="Hebdo", start=MOMENT, end=MOMENT)
+    session.add(event)
     session.flush()
-    reunion = Meeting(
-        event_id=evenement.id, series_id=serie.id, title="Hebdo", date=date(2026, 11, 24)
+    meeting = Meeting(
+        event_id=event.id, series_id=series.id, title="Hebdo", date=date(2026, 11, 24)
     )
-    session.add(reunion)
+    session.add(meeting)
     session.commit()
 
-    session.delete(session.get(Event, evenement.id))
+    session.delete(session.get(Event, event.id))
     session.commit()
 
     identifiant = session.execute(text("SELECT event_id FROM meeting")).scalar_one()
@@ -115,37 +115,37 @@ def test_supprimer_un_evenement_par_le_modele_detache_la_reunion(session) -> Non
 
 def test_supprimer_une_serie_sans_reunion_est_autorise(session) -> None:
     """Une série sans réunion peut être supprimée (specs/02 §4)."""
-    serie = _serie(session)
+    series = _series(session)
     session.commit()
 
-    session.delete(serie)
+    session.delete(series)
     session.commit()
 
-    nombre = session.execute(text("SELECT count(*) FROM series")).scalar_one()
-    assert nombre == 0
+    count = session.execute(text("SELECT count(*) FROM series")).scalar_one()
+    assert count == 0
 
 
 def test_deux_reunions_peuvent_se_passer_d_evenement(session) -> None:
     """`event_id` est unique mais les valeurs nulles ne se heurtent pas (specs/02 §2.5)."""
-    serie = _serie(session)
-    for titre in ("Hebdo", "Mensuel"):
-        session.add(Meeting(series_id=serie.id, title=titre, date=date(2026, 11, 24)))
+    series = _series(session)
+    for title in ("Hebdo", "Mensuel"):
+        session.add(Meeting(series_id=series.id, title=title, date=date(2026, 11, 24)))
     session.commit()
 
-    nombre = session.execute(text("SELECT count(*) FROM meeting")).scalar_one()
-    assert nombre == 2
+    count = session.execute(text("SELECT count(*) FROM meeting")).scalar_one()
+    assert count == 2
 
 
 def test_les_relations_portent_leurs_enfants(session) -> None:
     """Les relations du modèle portent leurs enfants (specs/02 §4)."""
-    serie = _serie(session)
-    evenement = Event(uid="u1", title="Hebdo", start=MOMENT, end=MOMENT)
-    session.add(evenement)
+    series = _series(session)
+    event = Event(uid="u1", title="Hebdo", start=MOMENT, end=MOMENT)
+    session.add(event)
     session.flush()
-    reunion = Meeting(
-        event_id=evenement.id, series_id=serie.id, title="Hebdo", date=date(2026, 11, 24)
+    meeting = Meeting(
+        event_id=event.id, series_id=series.id, title="Hebdo", date=date(2026, 11, 24)
     )
-    session.add(reunion)
+    session.add(meeting)
     session.flush()
 
     element = InboxItem(
@@ -155,19 +155,19 @@ def test_les_relations_portent_leurs_enfants(session) -> None:
     session.flush()
     session.add(
         Transcript(
-            meeting_id=reunion.id,
+            meeting_id=meeting.id,
             inbox_item_id=element.id,
             source=TranscriptSource.NOTES,
             text="T",
         )
     )
-    session.add(PrepNote(meeting_id=reunion.id, content_md="Fiche", created_at=MOMENT))
-    compte_rendu = Minutes(meeting_id=reunion.id, version=1, summary="Résumé", created_at=MOMENT)
+    session.add(PrepNote(meeting_id=meeting.id, content_md="Fiche", created_at=MOMENT))
+    compte_rendu = Minutes(meeting_id=meeting.id, version=1, summary="Résumé", created_at=MOMENT)
     session.add(compte_rendu)
     session.flush()
-    session.add(Decision(meeting_id=reunion.id, minutes_id=compte_rendu.id, text="D", quote="Q"))
+    session.add(Decision(meeting_id=meeting.id, minutes_id=compte_rendu.id, text="D", quote="Q"))
     session.add(
-        ActionItem(meeting_id=reunion.id, minutes_id=compte_rendu.id, description="A", quote="Q")
+        ActionItem(meeting_id=meeting.id, minutes_id=compte_rendu.id, description="A", quote="Q")
     )
 
     element_capture = InboxItem(
@@ -192,13 +192,13 @@ def test_les_relations_portent_leurs_enfants(session) -> None:
     )
     session.commit()
 
-    assert reunion.event is not None and reunion.event.uid == "u1"
-    assert [transcript.source for transcript in reunion.transcripts] == [TranscriptSource.NOTES]
-    assert reunion.prep_note is not None and reunion.prep_note.content_md == "Fiche"
-    assert [version.version for version in reunion.minutes] == [1]
+    assert meeting.event is not None and meeting.event.uid == "u1"
+    assert [transcript.source for transcript in meeting.transcripts] == [TranscriptSource.NOTES]
+    assert meeting.prep_note is not None and meeting.prep_note.content_md == "Fiche"
+    assert [version.version for version in meeting.minutes] == [1]
 
     assert [decision.text for decision in compte_rendu.decisions] == ["D"]
     assert [action.description for action in compte_rendu.action_items] == ["A"]
 
-    assert [ligne.person for ligne in capture.lines] == ["Thomas"]
+    assert [row.person for row in capture.lines] == ["Thomas"]
     assert [anomalie.rule_id for anomalie in capture.anomalies] == ["R1"]

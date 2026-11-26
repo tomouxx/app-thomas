@@ -9,8 +9,8 @@ des colonnes `JSON` (specs/02 §1.7).
 
 from __future__ import annotations
 
-import enum
 from datetime import date, datetime
+from enum import StrEnum
 
 from sqlalchemy import (
     JSON,
@@ -29,12 +29,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from cabinet.db.base import Base, TZDateTime
 
 
-def _enum_type(members: type[enum.StrEnum]) -> Enum:
+def _enum_type(members: type[StrEnum]) -> Enum:
     """Type de colonne d'un état, stocké sous sa valeur (specs/02 §1.5)."""
     return Enum(members, native_enum=False, values_callable=lambda m: [x.value for x in m])
 
 
-class RunStatus(enum.StrEnum):
+class RunStatus(StrEnum):
     """État d'une exécution d'agent (specs/02 §2.1)."""
 
     EN_COURS = "en_cours"
@@ -42,7 +42,7 @@ class RunStatus(enum.StrEnum):
     ERREUR = "erreur"
 
 
-class InboxKind(enum.StrEnum):
+class InboxKind(StrEnum):
     """Nature d'un fichier déposé dans `entree/` (specs/02 §2.2)."""
 
     TEAMS_TRANSCRIPT = "teams_transcript"
@@ -53,7 +53,7 @@ class InboxKind(enum.StrEnum):
     INCONNU = "inconnu"
 
 
-class InboxStatus(enum.StrEnum):
+class InboxStatus(StrEnum):
     """État d'un élément d'entrée (specs/02 §2.2.1)."""
 
     NOUVEAU = "nouveau"
@@ -65,7 +65,7 @@ class InboxStatus(enum.StrEnum):
     IGNORE = "ignore"
 
 
-class TranscriptSource(enum.StrEnum):
+class TranscriptSource(StrEnum):
     """Origine du texte d'une réunion (specs/02 §2.6)."""
 
     TEAMS = "teams"
@@ -73,42 +73,42 @@ class TranscriptSource(enum.StrEnum):
     NOTES = "notes"
 
 
-class DocStatus(enum.StrEnum):
+class DocStatus(StrEnum):
     """État d'un document généré : fiche ou compte rendu (specs/02 §2.7, §2.8)."""
 
     BROUILLON = "brouillon"
     VALIDE = "valide"
 
 
-class ActionStatus(enum.StrEnum):
+class ActionStatus(StrEnum):
     """État d'une action (specs/02 §2.10)."""
 
     OUVERT = "ouvert"
     FAIT = "fait"
 
 
-class CaptureSource(enum.StrEnum):
+class CaptureSource(StrEnum):
     """Moyen de lecture d'une capture d'imputations (specs/02 §2.11)."""
 
     TEXTE = "texte"
     VISION = "vision"
 
 
-class Severity(enum.StrEnum):
+class Severity(StrEnum):
     """Gravité d'une anomalie (specs/02 §2.13)."""
 
     BLOQUANT = "bloquant"
     A_VERIFIER = "a_verifier"
 
 
-class DraftKind(enum.StrEnum):
+class DraftKind(StrEnum):
     """Nature d'un brouillon de message (specs/02 §2.14)."""
 
     ENVOI_CR = "envoi_cr"
     RELANCE_CRA = "relance_cra"
 
 
-class DraftStatus(enum.StrEnum):
+class DraftStatus(StrEnum):
     """État d'un brouillon de message (specs/02 §2.14)."""
 
     BROUILLON = "brouillon"

@@ -29,13 +29,13 @@ JEUX = Path(__file__).resolve().parent.parent / "fixtures" / "agenda"
 ZURICH = ZoneInfo("Europe/Zurich")
 
 
-def zurich(annee: int, mois: int, jour: int, heure: int = 0, minute: int = 0) -> datetime:
-    return datetime(annee, mois, jour, heure, minute, tzinfo=ZURICH)
+def zurich(annee: int, mois: int, day: int, hour: int = 0, minute: int = 0) -> datetime:
+    return datetime(annee, mois, day, hour, minute, tzinfo=ZURICH)
 
 
-def lire(nom: str, debut: date, fin: date):
+def read_events(name: str, start: date, end: date):
     """Les occurrences d'un jeu ICS du dossier de fixtures."""
-    return IcsCalendarSource(JEUX / nom).list_events(debut, fin)
+    return IcsCalendarSource(JEUX / name).list_events(start, end)
 
 
 def fixer_date(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -82,18 +82,18 @@ def test_cle_de_serie_chiffres_au_milieu() -> None:
 
 def test_evenement_sans_dtend() -> None:
     """Sans `DTEND`, la fin vaut le début (specs/05 §6.1)."""
-    (evenement,) = lire("sans_fin.ics", date(2026, 11, 25), date(2026, 11, 25))
-    assert evenement.start == zurich(2026, 11, 25, 17, 0)
-    assert evenement.end == evenement.start
-    assert evenement.all_day is False
+    (event,) = read_events("sans_fin.ics", date(2026, 11, 25), date(2026, 11, 25))
+    assert event.start == zurich(2026, 11, 25, 17, 0)
+    assert event.end == event.start
+    assert event.all_day is False
 
 
 def test_journee_entiere_sans_dtend() -> None:
     """Journée entière sans `DTEND` : la fin est minuit du lendemain."""
-    (evenement,) = lire("journee_sans_fin.ics", date(2026, 11, 25), date(2026, 11, 25))
-    assert evenement.all_day is True
-    assert evenement.start == zurich(2026, 11, 25)
-    assert evenement.end == zurich(2026, 11, 26)
+    (event,) = read_events("journee_sans_fin.ics", date(2026, 11, 25), date(2026, 11, 25))
+    assert event.all_day is True
+    assert event.start == zurich(2026, 11, 25)
+    assert event.end == zurich(2026, 11, 26)
 
 
 def test_fichier_binaire_illisible(tmp_path: Path) -> None:
@@ -113,11 +113,11 @@ def test_occurrence_deplacee_donne_une_nouvelle_ligne(
 ) -> None:
     """Même `uid`, heure changée : une ligne `event` et une réunion de plus."""
     fixer_date(monkeypatch)
-    chemin = tmp_path / "agenda.ics"
-    shutil.copyfile(JEUX / "deplace_avant.ics", chemin)
-    premier = executer(AgendaAgent(IcsCalendarSource(chemin)))
-    shutil.copyfile(JEUX / "deplace_apres.ics", chemin)
-    second = executer(AgendaAgent(IcsCalendarSource(chemin)))
+    path = tmp_path / "agenda.ics"
+    shutil.copyfile(JEUX / "deplace_avant.ics", path)
+    premier = executer(AgendaAgent(IcsCalendarSource(path)))
+    shutil.copyfile(JEUX / "deplace_apres.ics", path)
+    second = executer(AgendaAgent(IcsCalendarSource(path)))
 
     assert (premier.processed, second.processed) == (1, 1)
     assert compter(Event) == 2

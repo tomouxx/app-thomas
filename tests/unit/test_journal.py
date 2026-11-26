@@ -80,9 +80,9 @@ def test_interruption_laisse_la_ligne_a_erreur_et_remonte(session) -> None:
     """Une interruption laisse la ligne à `erreur` et remonte (specs/05 §2.2)."""
     with pytest.raises(KeyboardInterrupt), record_run(session, "essai"):
         raise KeyboardInterrupt()
-    statut = session.execute(text("SELECT status FROM agent_run")).scalar_one()
+    status = session.execute(text("SELECT status FROM agent_run")).scalar_one()
     message = session.execute(text("SELECT error FROM agent_run")).scalar_one()
-    assert statut == "erreur"
+    assert status == "erreur"
     assert message == "KeyboardInterrupt"
 
 
@@ -91,8 +91,8 @@ def test_exception_annule_le_travail_en_attente(session) -> None:
     with pytest.raises(RuntimeError), record_run(session, "essai"):
         session.add(AgentRun(agent="autre", started_at=clock.now()))
         raise RuntimeError("échec")
-    noms = [ligne[0] for ligne in session.execute(text("SELECT agent FROM agent_run ORDER BY id"))]
-    assert noms == ["essai"]
+    names = [row[0] for row in session.execute(text("SELECT agent FROM agent_run ORDER BY id"))]
+    assert names == ["essai"]
 
 
 def test_get_session_renvoie_des_sessions_neuves() -> None:
@@ -102,14 +102,14 @@ def test_get_session_renvoie_des_sessions_neuves() -> None:
     seconde = get_session()
     try:
         assert premiere is not seconde
-        ligne = AgentRun(agent="essai", started_at=clock.now())
-        premiere.add(ligne)
+        row = AgentRun(agent="essai", started_at=clock.now())
+        premiere.add(row)
         premiere.commit()
     finally:
         premiere.close()
         seconde.close()
     # Sans expiration au commit, l'objet reste utilisable après la fermeture.
-    assert ligne.agent == "essai"
+    assert row.agent == "essai"
 
 
 def test_second_appel_d_init_db_ne_perd_rien(session) -> None:
@@ -117,8 +117,8 @@ def test_second_appel_d_init_db_ne_perd_rien(session) -> None:
     with record_run(session, "essai"):
         pass
     init_db()
-    nombre = session.execute(text("SELECT count(*) FROM agent_run")).scalar_one()
-    assert nombre == 1
+    count = session.execute(text("SELECT count(*) FROM agent_run")).scalar_one()
+    assert count == 1
 
 
 def test_get_engine_resout_le_chemin_a_chaque_appel(
@@ -138,8 +138,9 @@ def test_sortie_normale_valide_le_travail_de_l_appelant() -> None:
     with get_session() as session, record_run(session, "essai"):
         session.add(AgentRun(agent="autre", started_at=clock.now()))
     with get_session() as session:
-        noms = [ligne[0] for ligne in session.execute(text("SELECT agent FROM agent_run ORDER BY id"))]
-    assert noms == ["essai", "autre"]
+        query = text("SELECT agent FROM agent_run ORDER BY id")
+        names = [row[0] for row in session.execute(query)]
+    assert names == ["essai", "autre"]
 
 
 def test_page_journal_affiche_en_cours_sans_date_de_fin() -> None:
@@ -162,13 +163,13 @@ def test_page_journal_tri_par_identifiant_si_meme_heure() -> None:
     """À `started_at` égale, le tri est par `id` décroissant (specs/08 §8)."""
     init_db()
     with get_session() as session:
-        for nom in ("alpha", "beta"):
+        for name in ("alpha", "beta"):
             session.execute(
                 text(
                     "INSERT INTO agent_run (agent, target_ref, status, started_at) "
-                    "VALUES (:nom, '', 'ok', '2026-11-24 08:30:00.000000')"
+                    "VALUES (:name, '', 'ok', '2026-11-24 08:30:00.000000')"
                 ),
-                {"nom": nom},
+                {"name": name},
             )
         session.commit()
     with TestClient(create_app()) as navigateur:

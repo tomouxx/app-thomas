@@ -51,7 +51,9 @@ class Pipeline:
         finally:
             self._release_lock()
 
-    def _run_agent(self, agent: Agent, session_factory: Callable[[], Session]) -> AgentOutcome | str:
+    def _run_agent(
+        self, agent: Agent, session_factory: Callable[[], Session]
+    ) -> AgentOutcome | str:
         """Un agent dans `record_run`, sur sa propre session (specs/05 §3.1)."""
         # Une panne de la fabrique remonte telle quelle ; le verrou est retiré par `run`.
         session = session_factory()

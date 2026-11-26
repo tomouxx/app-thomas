@@ -27,8 +27,10 @@
                 </label>
               {% endfor %}
               <p>Réunion hors agenda :</p>
-              <input type="text" name="titre" placeholder="Titre de la réunion">
-              <input type="date" name="date">
+              <label for="titre-{{ item.id }}">Titre de la réunion</label>
+              <input type="text" id="titre-{{ item.id }}" name="titre">
+              <label for="date-{{ item.id }}">Date de la réunion</label>
+              <input type="date" id="date-{{ item.id }}" name="date">
               {% if item.kind == "audio" %}
                 <label>
                   <input type="checkbox" name="consentement">

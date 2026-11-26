@@ -21,20 +21,20 @@ from cabinet.ports.calendar import CalendarError, EventData
 class IcsCalendarSource:
     """Lit les occurrences d'un fichier ICS local (specs/05 §6.1)."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path) -> None:
         self._path = path
 
     def list_events(self, start: date, end: date) -> list[EventData]:
         """Les occurrences de la fenêtre : le jour `end` est rendu, pas le lendemain."""
-        calendrier = _lire_calendrier(self._path)
-        debut_fenetre = datetime.combine(start, time.min, tzinfo=clock.LOCAL_TZ)
-        fin_fenetre = datetime.combine(end + timedelta(days=1), time.min, tzinfo=clock.LOCAL_TZ)
-        occurrences = recurring_ical_events.of(calendrier).between(debut_fenetre, fin_fenetre)
-        evenements = [_evenement_data(occurrence) for occurrence in occurrences]
-        return sorted(evenements, key=lambda evenement: (evenement.start, evenement.uid))
+        calendar = _read_calendar(self._path)
+        window_start = datetime.combine(start, time.min, tzinfo=clock.LOCAL_TZ)
+        window_end = datetime.combine(end + timedelta(days=1), time.min, tzinfo=clock.LOCAL_TZ)
+        occurrences = recurring_ical_events.of(calendar).between(window_start, window_end)
+        events = [_event_data(occurrence) for occurrence in occurrences]
+        return sorted(events, key=lambda event: (event.start, event.uid))
 
 
-def _lire_calendrier(path: Path) -> icalendar.Calendar:
+def _read_calendar(path: Path) -> icalendar.Calendar:
     """Le calendrier d'un fichier ICS, ou une `CalendarError` lisible (specs/05 §6.1)."""
     if not path.is_file():
         raise CalendarError(
@@ -42,29 +42,29 @@ def _lire_calendrier(path: Path) -> icalendar.Calendar:
             "Exporte ton agenda au format ICS et place-le à cet endroit."
         )
     try:
-        octets = path.read_bytes()
-        return icalendar.Calendar.from_ical(octets)
+        data = path.read_bytes()
+        return icalendar.Calendar.from_ical(data)
     except Exception as error:
         raise CalendarError(f"Fichier d'agenda illisible : {error}.") from error
 
 
-def _evenement_data(occurrence: icalendar.Event) -> EventData:
+def _event_data(occurrence: icalendar.Event) -> EventData:
     """Un `EventData` pour une occurrence développée (tableau de specs/05 §6.1)."""
     all_day = not isinstance(_value(occurrence.get("DTSTART")), datetime)
-    debut = _instant(occurrence.get("DTSTART"))
-    brut_fin = occurrence.get("DTEND")
-    fin = _instant(brut_fin) if brut_fin is not None else debut
-    titre = str(occurrence.get("SUMMARY") or "(sans titre)")
+    start = _instant(occurrence.get("DTSTART"))
+    raw_end = occurrence.get("DTEND")
+    end = _instant(raw_end) if raw_end is not None else start
+    title = str(occurrence.get("SUMMARY") or "(sans titre)")
     return EventData(
         uid=str(occurrence.get("UID") or ""),
-        title=titre,
-        start=debut,
-        end=fin,
+        title=title,
+        start=start,
+        end=end,
         all_day=all_day,
         location=_text(occurrence.get("LOCATION")),
-        organizer=_adresse(occurrence.get("ORGANIZER")),
+        organizer=_address(occurrence.get("ORGANIZER")),
         attendees=_participants(occurrence),
-        cancelled=_est_annule(occurrence, titre),
+        cancelled=_is_cancelled(occurrence, title),
     )
 
 
@@ -95,7 +95,7 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-def _adresse(value: object) -> str | None:
+def _address(value: object) -> str | None:
     """Une adresse ICS sans `mailto:` et en minuscules, ou `None` (specs/05 §6.1)."""
     if value is None:
         return None
@@ -107,18 +107,18 @@ def _adresse(value: object) -> str | None:
 
 def _participants(occurrence: icalendar.Event) -> list[str]:
     """Les adresses `ATTENDEE`, dans l'ordre du fichier, sans doublon."""
-    vus: set[str] = set()
+    seen: set[str] = set()
     participants: list[str] = []
     for value in occurrence.get("ATTENDEE") or []:
-        adresse = _adresse(value)
-        if adresse is not None and adresse not in vus:
-            vus.add(adresse)
-            participants.append(adresse)
+        address = _address(value)
+        if address is not None and address not in seen:
+            seen.add(address)
+            participants.append(address)
     return participants
 
 
-def _est_annule(occurrence: icalendar.Event, titre: str) -> bool:
+def _is_cancelled(occurrence: icalendar.Event, title: str) -> bool:
     """Vrai si le statut est `CANCELLED` ou si le titre annonce l'annulation."""
     if str(occurrence.get("STATUS") or "").upper() == "CANCELLED":
         return True
-    return titre.casefold().startswith(("annulé", "canceled"))
+    return title.casefold().startswith(("annulé", "canceled"))

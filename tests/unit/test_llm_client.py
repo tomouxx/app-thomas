@@ -38,45 +38,45 @@ def garde_non_levee(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("CABINET_ALLOW_REMOTE_LLM", raising=False)
 
 
-def reponse_du_serveur(contenu: Any, avec_compteurs: bool = True) -> dict[str, Any]:
-    corps: dict[str, Any] = {
+def server_response(content: Any, with_counters: bool = True) -> dict[str, Any]:
+    body: dict[str, Any] = {
         "id": "essai",
         "object": "chat.completion",
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": contenu},
+                "message": {"role": "assistant", "content": content},
                 "finish_reason": "stop",
             }
         ],
     }
-    if avec_compteurs:
-        corps["usage"] = {"prompt_tokens": 12, "completion_tokens": 3, "total_tokens": 15}
-    return corps
+    if with_counters:
+        body["usage"] = {"prompt_tokens": 12, "completion_tokens": 3, "total_tokens": 15}
+    return body
 
 
-class FauxServeur:
+class FakeServer:
     """Doublure du serveur du modèle : rejoue une liste de réponses."""
 
-    def __init__(self, *reponses: Any) -> None:
-        self.reponses = list(reponses)
+    def __init__(self, *responses: Any) -> None:
+        self.responses = list(responses)
         self.requetes: list[httpx.Request] = []
 
     def __call__(self, requete: httpx.Request) -> httpx.Response:
         self.requetes.append(requete)
-        suivante = self.reponses[min(len(self.requetes), len(self.reponses)) - 1]
+        suivante = self.responses[min(len(self.requetes), len(self.responses)) - 1]
         if isinstance(suivante, Exception):
             raise suivante
         if isinstance(suivante, httpx.Response):
             return suivante
-        return httpx.Response(200, json=reponse_du_serveur(suivante))
+        return httpx.Response(200, json=server_response(suivante))
 
-    def corps(self, rang: int = 0) -> dict[str, Any]:
+    def body(self, rang: int = 0) -> dict[str, Any]:
         return json.loads(self.requetes[rang].content)
 
 
-def client(serveur: Callable[[httpx.Request], httpx.Response]) -> LocalLLM:
-    return LocalLLM(URL_LOCALE, "qwen-local", transport=httpx.MockTransport(serveur))
+def client(server: Callable[[httpx.Request], httpx.Response]) -> LocalLLM:
+    return LocalLLM(URL_LOCALE, "qwen-local", transport=httpx.MockTransport(server))
 
 
 # --- Garde de bouclage ------------------------------------------------------
@@ -93,8 +93,8 @@ def test_garde_refuse_une_adresse_sans_hote_meme_avec_le_port() -> None:
 
 
 def test_garde_seule_la_valeur_exacte_1_leve(monkeypatch: pytest.MonkeyPatch) -> None:
-    for valeur in ("0", "true", "2", ""):
-        monkeypatch.setenv("CABINET_ALLOW_REMOTE_LLM", valeur)
+    for value in ("0", "true", "2", ""):
+        monkeypatch.setenv("CABINET_ALLOW_REMOTE_LLM", value)
         with pytest.raises(ConfigError):
             assert_loopback(URL_DISTANTE)
 
@@ -108,107 +108,110 @@ def test_garde_message_nomme_l_hote_recu() -> None:
 
 
 def test_constructeur_garde_le_nom_du_modele_et_l_adresse() -> None:
-    llm = client(FauxServeur("inutile"))
+    llm = client(FakeServer("inutile"))
     assert llm.model == "qwen-local"
     assert llm.base_url == URL_LOCALE
 
 
 def test_constructeur_retire_la_barre_oblique_finale() -> None:
-    serveur = FauxServeur("Bonjour")
-    llm = LocalLLM(f"{URL_LOCALE}/", "qwen-local", transport=httpx.MockTransport(serveur))
+    server = FakeServer("Bonjour")
+    llm = LocalLLM(f"{URL_LOCALE}/", "qwen-local", transport=httpx.MockTransport(server))
     llm.complete([Message(role="user", content="Dis bonjour.")])
-    assert str(serveur.requetes[0].url) == f"{URL_LOCALE}/chat/completions"
+    assert str(server.requetes[0].url) == f"{URL_LOCALE}/chat/completions"
 
 
 # --- Lecture de la réponse --------------------------------------------------
 
 
 def test_contenu_nul_vaut_chaine_vide() -> None:
-    def serveur(requete: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=reponse_du_serveur(None))
+    def server(requete: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=server_response(None))
 
-    assert client(serveur).complete([Message(role="user", content="Bonjour.")]).text == ""
+    assert client(server).complete([Message(role="user", content="Bonjour.")]).text == ""
 
 
 def test_reponse_sans_choices_leve_llm_error() -> None:
-    def serveur(requete: httpx.Request) -> httpx.Response:
+    def server(requete: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"id": "essai", "choices": []})
 
     with pytest.raises(LLMError, match="réponse inattendue"):
-        client(serveur).complete([Message(role="user", content="Bonjour.")])
+        client(server).complete([Message(role="user", content="Bonjour.")])
 
 
 def test_corps_non_json_leve_llm_error() -> None:
-    def serveur(requete: httpx.Request) -> httpx.Response:
+    def server(requete: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text="ceci n'est pas du JSON")
 
     with pytest.raises(LLMError, match="réponse inattendue"):
-        client(serveur).complete([Message(role="user", content="Bonjour.")])
+        client(server).complete([Message(role="user", content="Bonjour.")])
 
 
 def test_erreur_http_nomme_le_code() -> None:
-    serveur = FauxServeur(httpx.Response(503, text="indisponible"))
+    server = FakeServer(httpx.Response(503, text="indisponible"))
     with pytest.raises(LLMError, match="erreur HTTP 503"):
-        client(serveur).complete([Message(role="user", content="Bonjour.")])
+        client(server).complete([Message(role="user", content="Bonjour.")])
 
 
 def test_delai_depasse_nomme_le_delai() -> None:
-    def serveur(requete: httpx.Request) -> httpx.Response:
+    def server(requete: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("délai dépassé")
 
-    llm = LocalLLM(URL_LOCALE, "qwen-local", timeout_s=1.5, transport=httpx.MockTransport(serveur))
+    llm = LocalLLM(URL_LOCALE, "qwen-local", timeout_s=1.5, transport=httpx.MockTransport(server))
     with pytest.raises(LLMError, match="n'a pas répondu en 1.5 secondes"):
         llm.complete([Message(role="user", content="Bonjour.")])
 
 
 def test_serveur_injoignable_leve_llm_error() -> None:
-    def serveur(requete: httpx.Request) -> httpx.Response:
+    def server(requete: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refusé")
 
     with pytest.raises(LLMError, match="injoignable"):
-        client(serveur).complete([Message(role="user", content="Bonjour.")])
+        client(server).complete([Message(role="user", content="Bonjour.")])
 
 
 # --- Relances avec schéma ---------------------------------------------------
 
 
 def test_relance_renvoie_la_reponse_recue_en_message_assistant() -> None:
-    serveur = FauxServeur("non", '{"montant_total": 7, "ok": false}')
-    client(serveur).complete([Message(role="user", content="Donne le verdict.")], schema=Verdict)
-    messages = serveur.corps(1)["messages"]
-    assert messages[-2] == {"role": "assistant", "content": "non"}
-    assert messages[-1]["role"] == "user"
-    assert "JSON" in messages[-1]["content"]
+    server = FakeServer("non", '{"montant_total": 7, "ok": false}')
+    messages = [Message(role="user", content="Donne le verdict.")]
+    client(server).complete(messages, schema=Verdict)
+    fetched = server.body(1)["messages"]
+    assert fetched[-2] == {"role": "assistant", "content": "non"}
+    assert fetched[-1]["role"] == "user"
+    assert "JSON" in fetched[-1]["content"]
 
 
 def test_trois_reponses_invalides_nomment_les_defauts() -> None:
-    serveur = FauxServeur("non", '{"autre_champ": 1}', "toujours pas")
+    server = FakeServer("non", '{"autre_champ": 1}', "toujours pas")
+    messages = [Message(role="user", content="Donne le verdict.")]
     with pytest.raises(LLMError, match="après 3 essais"):
-        client(serveur).complete([Message(role="user", content="Donne le verdict.")], schema=Verdict)
+        client(server).complete(messages, schema=Verdict)
 
 
 def test_compteurs_somme_des_essais_qui_en_ont() -> None:
     requetes: list[httpx.Request] = []
 
-    def serveur(requete: httpx.Request) -> httpx.Response:
+    def server(requete: httpx.Request) -> httpx.Response:
         requetes.append(requete)
         if len(requetes) == 1:
-            return httpx.Response(200, json=reponse_du_serveur("non", avec_compteurs=False))
-        return httpx.Response(200, json=reponse_du_serveur('{"montant_total": 7, "ok": false}'))
+            return httpx.Response(200, json=server_response("non", with_counters=False))
+        return httpx.Response(200, json=server_response('{"montant_total": 7, "ok": false}'))
 
-    resultat = client(serveur).complete([Message(role="user", content="Donne le verdict.")], schema=Verdict)
+    messages = [Message(role="user", content="Donne le verdict.")]
+    result = client(server).complete(messages, schema=Verdict)
     assert len(requetes) == 2
-    assert resultat.prompt_tokens == 12
-    assert resultat.completion_tokens == 3
+    assert result.prompt_tokens == 12
+    assert result.completion_tokens == 3
 
 
 def test_compteurs_nuls_quand_aucun_essai_n_en_a() -> None:
-    def serveur(requete: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=reponse_du_serveur("Bonjour", avec_compteurs=False))
+    def server(requete: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=server_response("Bonjour", with_counters=False))
 
-    resultat = client(serveur).complete([Message(role="user", content="Dis bonjour.")])
-    assert resultat.prompt_tokens is None
-    assert resultat.completion_tokens is None
+    result = client(server).complete([Message(role="user", content="Dis bonjour.")])
+    assert result.prompt_tokens is None
+    assert result.completion_tokens is None
 
 
 # --- Images -----------------------------------------------------------------
@@ -217,10 +220,10 @@ def test_compteurs_nuls_quand_aucun_essai_n_en_a() -> None:
 def test_image_extension_majuscule_est_acceptee(tmp_path: Path) -> None:
     image = tmp_path / "app_capture.JPG"
     image.write_bytes(b"\x89PNG\r\n\x1a\n")
-    serveur = FauxServeur("Vu.")
-    client(serveur).complete([Message(role="user", content="Décris la capture.")], images=[image])
-    contenu = serveur.corps()["messages"][-1]["content"]
-    url = contenu[1]["image_url"]["url"]
+    server = FakeServer("Vu.")
+    client(server).complete([Message(role="user", content="Décris la capture.")], images=[image])
+    content = server.body()["messages"][-1]["content"]
+    url = content[1]["image_url"]["url"]
     assert url.startswith("data:image/jpeg;base64,")
 
 
@@ -228,7 +231,7 @@ def test_image_extension_inconnue_leve_value_error(tmp_path: Path) -> None:
     image = tmp_path / "capture.gif"
     image.write_bytes(b"GIF89a")
     with pytest.raises(ValueError, match="non prise en charge"):
-        client(FauxServeur("Vu.")).complete(
+        client(FakeServer("Vu.")).complete(
             [Message(role="user", content="Décris la capture.")], images=[image]
         )
 
@@ -236,7 +239,7 @@ def test_image_extension_inconnue_leve_value_error(tmp_path: Path) -> None:
 def test_images_sans_message_utilisateur_levent_value_error(tmp_path: Path) -> None:
     image = tmp_path / "app_capture.png"  # jamais lu : l'erreur précède la lecture
     with pytest.raises(ValueError, match="Aucun message utilisateur"):
-        client(FauxServeur("Vu.")).complete(
+        client(FakeServer("Vu.")).complete(
             [Message(role="system", content="Tu décris des captures.")], images=[image]
         )
 
@@ -244,8 +247,8 @@ def test_images_sans_message_utilisateur_levent_value_error(tmp_path: Path) -> N
 def test_images_rattachees_au_dernier_message_utilisateur(tmp_path: Path) -> None:
     image = tmp_path / "app_capture.png"
     image.write_bytes(b"\x89PNG\r\n\x1a\n")
-    serveur = FauxServeur("Vu.")
-    client(serveur).complete(
+    server = FakeServer("Vu.")
+    client(server).complete(
         [
             Message(role="user", content="Première question."),
             Message(role="assistant", content="Une réponse."),
@@ -253,68 +256,68 @@ def test_images_rattachees_au_dernier_message_utilisateur(tmp_path: Path) -> Non
         ],
         images=[image],
     )
-    messages = serveur.corps()["messages"]
+    messages = server.body()["messages"]
     assert isinstance(messages[0]["content"], str)
-    contenu = messages[2]["content"]
-    assert isinstance(contenu, list)
-    assert contenu[0] == {"type": "text", "text": "Deuxième question."}
+    content = messages[2]["content"]
+    assert isinstance(content, list)
+    assert content[0] == {"type": "text", "text": "Deuxième question."}
 
 
 # --- Commande `cabinet llm-test` --------------------------------------------
 
 
 def test_llm_test_affiche_ok(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FauxLocalLLM:
+    class FakeLocalLLM:
         def __init__(self, base_url: str = "", model: str = "", timeout_s: float = 0) -> None:
             pass
 
         def complete(self, messages: list[Message], schema=None, images=None) -> LLMResult:
             return LLMResult(text='{"ok": true}', parsed=Ping(ok=True))
 
-    monkeypatch.setattr(cli_module, "LocalLLM", FauxLocalLLM)
-    resultat = CliRunner().invoke(cli_app, ["llm-test"])
-    assert resultat.exit_code == 0
-    assert "OK" in resultat.output
+    monkeypatch.setattr(cli_module, "LocalLLM", FakeLocalLLM)
+    result = CliRunner().invoke(cli_app, ["llm-test"])
+    assert result.exit_code == 0
+    assert "OK" in result.output
 
 
 def test_llm_test_utilise_les_valeurs_par_defaut(monkeypatch: pytest.MonkeyPatch) -> None:
     construits: list[tuple[str, str, float]] = []
 
-    class FauxLocalLLM:
+    class FakeLocalLLM:
         def __init__(self, base_url: str = "", model: str = "", timeout_s: float = 0) -> None:
             construits.append((base_url, model, timeout_s))
 
         def complete(self, messages: list[Message], schema=None, images=None) -> LLMResult:
             return LLMResult(text='{"ok": true}', parsed=Ping(ok=True))
 
-    monkeypatch.setattr(cli_module, "LocalLLM", FauxLocalLLM)
-    resultat = CliRunner().invoke(cli_app, ["llm-test"])
-    assert resultat.exit_code == 0
+    monkeypatch.setattr(cli_module, "LocalLLM", FakeLocalLLM)
+    result = CliRunner().invoke(cli_app, ["llm-test"])
+    assert result.exit_code == 0
     assert construits[0] == ("http://127.0.0.1:8080/v1", "qwen-local", 900)
 
 
 def test_llm_test_echec_de_modele_sort_1(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FauxLocalLLM:
+    class FakeLocalLLM:
         def __init__(self, base_url: str = "", model: str = "", timeout_s: float = 0) -> None:
             pass
 
         def complete(self, messages: list[Message], schema=None, images=None) -> LLMResult:
             raise LLMError("Le modèle local a répondu par une erreur HTTP 500.")
 
-    monkeypatch.setattr(cli_module, "LocalLLM", FauxLocalLLM)
-    resultat = CliRunner().invoke(cli_app, ["llm-test"])
-    assert resultat.exit_code == 1
-    assert "erreur HTTP 500" in (resultat.stderr or "")
+    monkeypatch.setattr(cli_module, "LocalLLM", FakeLocalLLM)
+    result = CliRunner().invoke(cli_app, ["llm-test"])
+    assert result.exit_code == 1
+    assert "erreur HTTP 500" in (result.stderr or "")
 
 
 def test_llm_test_ok_faux_sort_1(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FauxLocalLLM:
+    class FakeLocalLLM:
         def __init__(self, base_url: str = "", model: str = "", timeout_s: float = 0) -> None:
             pass
 
         def complete(self, messages: list[Message], schema=None, images=None) -> LLMResult:
             return LLMResult(text='{"ok": false}', parsed=Ping(ok=False))
 
-    monkeypatch.setattr(cli_module, "LocalLLM", FauxLocalLLM)
-    resultat = CliRunner().invoke(cli_app, ["llm-test"])
-    assert resultat.exit_code == 1
+    monkeypatch.setattr(cli_module, "LocalLLM", FakeLocalLLM)
+    result = CliRunner().invoke(cli_app, ["llm-test"])
+    assert result.exit_code == 1

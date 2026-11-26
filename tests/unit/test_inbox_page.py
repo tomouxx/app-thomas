@@ -608,7 +608,10 @@ def test_page_audio_form_has_consent_checkbox() -> None:
     with TestClient(create_app()) as client:
         with get_session() as session:
             add_item(
-                session, "entree/enregistrement.m4a", InboxKind.AUDIO, InboxStatus.CONSENTEMENT_REQUIS
+                session,
+                "entree/enregistrement.m4a",
+                InboxKind.AUDIO,
+                InboxStatus.CONSENTEMENT_REQUIS,
             )
         response = client.get("/entree")
     assert '<input type="checkbox" name="consentement">' in response.text

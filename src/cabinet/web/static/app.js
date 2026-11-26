@@ -3,13 +3,13 @@
 // aucun message.
 
 document.addEventListener("click", async (event) => {
-  const bouton = event.target.closest("[data-copy]");
-  if (!bouton) {
+  const button = event.target.closest("[data-copy]");
+  if (!button) {
     return;
   }
-  const zone = document.getElementById(bouton.dataset.copy);
-  if (!zone) {
+  const area = document.getElementById(button.dataset.copy);
+  if (!area) {
     return;
   }
-  await navigator.clipboard.writeText(zone.value);
+  await navigator.clipboard.writeText(area.value);
 });

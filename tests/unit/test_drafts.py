@@ -28,10 +28,10 @@ from cabinet.web.app import create_app
 
 ZURICH = ZoneInfo("Europe/Zurich")
 MAINTENANT = datetime(2026, 11, 20, 9, 30, tzinfo=ZURICH)
-JOUR = "2026-11-20"
-DESTINATAIRES = ["alice.martin@exemple.test", "bruno.keller@exemple.test"]
-OBJET = "Compte rendu : comité d'été, 20.11.2026"
-CORPS = "Bonjour à tous,\n\nVoici les décisions prises.\nÀ bientôt,\nAlice"
+DAY = "2026-11-20"
+RECIPIENTS = ["alice.martin@exemple.test", "bruno.keller@exemple.test"]
+SUBJECT = "Compte rendu : comité d'été, 20.11.2026"
+BODY = "Bonjour à tous,\n\nVoici les décisions prises.\nÀ bientôt,\nAlice"
 GROUP_LABELS = ("Brouillons", "Validés", "Envoyés à la main", "Rejetés")
 
 
@@ -45,11 +45,11 @@ def add_draft(
     session: Session,
     kind: str = "envoi_cr",
     recipients: list[str] | None = None,
-    subject: str = OBJET,
-    body: str = CORPS,
+    subject: str = SUBJECT,
+    body: str = BODY,
 ) -> Draft:
     draft = create_draft(
-        session, kind, recipients or list(DESTINATAIRES), subject, body
+        session, kind, recipients or list(RECIPIENTS), subject, body
     )
     session.commit()
     return draft
@@ -140,11 +140,11 @@ def test_validation_writes_export_file_with_subject_and_body() -> None:
             draft = add_draft(session)
         response = client.post(f"/brouillons/{draft.id}/valider", follow_redirects=False)
     assert response.status_code == 303
-    expected = paths().drafts / f"{JOUR}_envoi_cr_{draft.id}.md"
+    expected = paths().drafts / f"{DAY}_envoi_cr_{draft.id}.md"
     assert expected.exists()
     content = expected.read_text(encoding="utf-8")
-    assert OBJET in content
-    assert CORPS in content
+    assert SUBJECT in content
+    assert BODY in content
 
 
 def test_export_content_follows_the_spec_format() -> None:
@@ -152,15 +152,15 @@ def test_export_content_follows_the_spec_format() -> None:
         with get_session() as session:
             draft = add_draft(session)
         client.post(f"/brouillons/{draft.id}/valider", follow_redirects=False)
-    content = (paths().drafts / f"{JOUR}_envoi_cr_{draft.id}.md").read_text(
+    content = (paths().drafts / f"{DAY}_envoi_cr_{draft.id}.md").read_text(
         encoding="utf-8"
     )
     lines = content.splitlines()
-    assert lines[0] == f"# {OBJET}"
+    assert lines[0] == f"# {SUBJECT}"
     assert lines[1] == ""
     assert lines[2].startswith("Destinataires : ")
     assert lines[3] == ""
-    assert "\n".join(lines[4:]) == CORPS
+    assert "\n".join(lines[4:]) == BODY
 
 
 def test_rejection_writes_no_export() -> None:
@@ -208,7 +208,7 @@ def test_modify_validated_draft_is_refused() -> None:
     assert response.status_code == 409
     with get_session() as session:
         saved = get_draft(session, draft.id)
-    assert saved.subject == OBJET
+    assert saved.subject == SUBJECT
 
 
 def test_modify_rejected_draft_is_refused() -> None:
@@ -276,8 +276,8 @@ def test_page_shows_kind_recipients_subject_body_and_date() -> None:
         response = client.get("/brouillons")
     page = unescape(response.text)
     assert "envoi_cr" in page
-    assert ", ".join(DESTINATAIRES) in page
-    assert OBJET in page
+    assert ", ".join(RECIPIENTS) in page
+    assert SUBJECT in page
     assert "Voici les décisions prises." in page
     assert "20.11.2026" in page
 
@@ -292,10 +292,10 @@ def test_mailto_link_decodes_back_to_original() -> None:
     link = mailto_link(draft)
     assert link.startswith("mailto:")
     head, query = link[len("mailto:"):].split("?", 1)
-    assert head == ",".join(DESTINATAIRES)
+    assert head == ",".join(RECIPIENTS)
     params = dict(pair.split("=", 1) for pair in query.split("&"))
-    assert unquote(params["subject"]) == OBJET
-    assert unquote(params["body"]) == CORPS
+    assert unquote(params["subject"]) == SUBJECT
+    assert unquote(params["body"]) == BODY
 
 
 def test_mailto_link_encodes_accents_and_newlines() -> None:

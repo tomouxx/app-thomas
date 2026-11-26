@@ -17,14 +17,14 @@ _NON_LETTER_RE = re.compile(r"[^a-z\s]")
 
 def series_key(title: str) -> str:
     """La clé de série d'un titre (étapes 1 à 6 de specs/05 §6.3)."""
-    cle = title.casefold()
-    cle = unicodedata.normalize("NFKD", cle)
-    cle = "".join(caractere for caractere in cle if not unicodedata.combining(caractere))
+    key = title.casefold()
+    key = unicodedata.normalize("NFKD", key)
+    key = "".join(char for char in key if not unicodedata.combining(char))
     while True:
-        sans_prefixe = _PREFIXES_RE.sub("", cle, count=1)
-        if sans_prefixe == cle:
+        without_prefix = _PREFIXES_RE.sub("", key, count=1)
+        if without_prefix == key:
             break
-        cle = sans_prefixe
-    cle = _NON_LETTER_RE.sub(" ", cle)
-    cle = " ".join(cle.split())
-    return cle or "sans titre"
+        key = without_prefix
+    key = _NON_LETTER_RE.sub(" ", key)
+    key = " ".join(key.split())
+    return key or "sans titre"

@@ -8,9 +8,9 @@ inconnu donne 404, et chaque `POST` réussi redirige vers `/brouillons`.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -48,20 +48,19 @@ def drafts_page(request: Request) -> Any:
 
 
 @router.post("/brouillons/{draft_id}")
-async def modify_draft(request: Request, draft_id: int) -> Any:
+def modify_draft(
+    request: Request,
+    draft_id: int,
+    subject: Annotated[str, Form()] = "",
+    body: Annotated[str, Form()] = "",
+    recipients: Annotated[str, Form()] = "",
+) -> Any:
     """Modifie un brouillon à l'état `brouillon` (specs/08 §7.4)."""
-    form = await request.form()
     with get_session() as session:
         if _unknown(session, draft_id):
             return _error(request, 404, "Brouillon inconnu.")
         try:
-            update_draft(
-                session,
-                draft_id,
-                _text(form, "subject"),
-                _text(form, "body"),
-                _recipients(_text(form, "recipients")),
-            )
+            update_draft(session, draft_id, subject, body, _recipients(recipients))
         except TransitionError as error:
             return _error(request, 409, str(error))
         session.commit()
@@ -135,11 +134,6 @@ def _draft_view(draft: Draft) -> dict[str, Any]:
     if draft.status is DraftStatus.VALIDE:
         view["mailto"] = mailto_link(draft)
     return view
-
-
-def _text(form: Any, name: str) -> str:
-    raw = form.get(name)
-    return raw if isinstance(raw, str) else ""
 
 
 def _recipients(raw: str) -> list[str]:

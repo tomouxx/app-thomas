@@ -20,8 +20,8 @@ from cabinet.db.models import Event, Meeting, Series
 from cabinet.ports.calendar import CalendarSource, EventData
 from cabinet.services.series import series_key
 
-_FENETRE_AVANT_JOURS = 30
-_FENETRE_APRES_JOURS = 14
+_WINDOW_BEFORE_DAYS = 30
+_WINDOW_AFTER_DAYS = 14
 
 
 class AgendaAgent:
@@ -29,68 +29,68 @@ class AgendaAgent:
 
     name = "agenda"
 
-    def __init__(self, calendar: CalendarSource):
+    def __init__(self, calendar: CalendarSource) -> None:
         self._calendar = calendar
 
     def run(self, session: Session) -> AgentOutcome:
         """Un passage : chaque occurrence de la fenêtre met à jour sa ligne."""
-        aujourdhui = clock.today()
-        evenements = self._calendar.list_events(
-            aujourdhui - timedelta(days=_FENETRE_AVANT_JOURS),
-            aujourdhui + timedelta(days=_FENETRE_APRES_JOURS),
+        today = clock.today()
+        events = self._calendar.list_events(
+            today - timedelta(days=_WINDOW_BEFORE_DAYS),
+            today + timedelta(days=_WINDOW_AFTER_DAYS),
         )
-        crees = 0
-        for data in evenements:
-            ligne, cree = _upsert_evenement(session, data)
-            if cree:
-                crees += 1
+        created = 0
+        for data in events:
+            row, is_new = _upsert_event(session, data)
+            if is_new:
+                created += 1
             if not data.cancelled and not data.all_day:
-                _upsert_reunion(session, ligne, data)
+                _upsert_meeting(session, row, data)
         session.commit()
-        return AgentOutcome(processed=crees)
+        return AgentOutcome(processed=created)
 
 
-def _upsert_evenement(session: Session, data: EventData) -> tuple[Event, bool]:
+def _upsert_event(session: Session, data: EventData) -> tuple[Event, bool]:
     """La ligne `event` de mêmes `uid` et `start`, créée ou mise à jour."""
-    champs = data.model_dump()
-    ligne = session.scalar(
-        select(Event).where(Event.uid == champs["uid"], Event.start == champs["start"])
+    fields = data.model_dump()
+    row = session.scalar(
+        select(Event).where(Event.uid == fields["uid"], Event.start == fields["start"])
     )
-    if ligne is not None:
-        for nom, value in champs.items():
-            if nom not in ("uid", "start"):
-                setattr(ligne, nom, value)
-        return ligne, False
-    ligne = Event(**champs)
-    session.add(ligne)
+    if row is not None:
+        for name, value in fields.items():
+            if name not in ("uid", "start"):
+                setattr(row, name, value)
+        return row, False
+    row = Event(**fields)
+    session.add(row)
     session.flush()  # l'identifiant est nécessaire à la réunion
-    return ligne, True
+    return row, True
 
 
-def _upsert_reunion(session: Session, ligne: Event, data: EventData) -> None:
+def _upsert_meeting(session: Session, row: Event, data: EventData) -> None:
     """La série et la réunion d'un évènement, créées si elles manquent (specs/05 §6.2)."""
-    serie = _serie_de(session, data)
-    reunion = session.scalar(select(Meeting).where(Meeting.event_id == ligne.id))
-    if reunion is None:
+    series = _series_for(session, data)
+    meeting = session.scalar(select(Meeting).where(Meeting.event_id == row.id))
+    if meeting is None:
         session.add(
             Meeting(
-                event_id=ligne.id,
-                series_id=serie.id,
+                event_id=row.id,
+                series_id=series.id,
                 title=data.title,
                 date=data.start.date(),
             )
         )
     else:
-        reunion.title = data.title
-        reunion.date = data.start.date()
+        meeting.title = data.title
+        meeting.date = data.start.date()
 
 
-def _serie_de(session: Session, data: EventData) -> Series:
+def _series_for(session: Session, data: EventData) -> Series:
     """La série de la clé du titre, créée si elle manque (specs/05 §6.2)."""
-    cle = series_key(data.title)
-    serie = session.scalar(select(Series).where(Series.key == cle))
-    if serie is None:
-        serie = Series(key=cle, label=data.title, followed=False)
-        session.add(serie)
+    key = series_key(data.title)
+    series = session.scalar(select(Series).where(Series.key == key))
+    if series is None:
+        series = Series(key=key, label=data.title, followed=False)
+        session.add(series)
         session.flush()  # l'identifiant est nécessaire à la réunion
-    return serie
+    return series

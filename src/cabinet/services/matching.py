@@ -23,7 +23,9 @@ from cabinet.db.models import InboxItem, Meeting
 _DATE_PREFIX_RE = re.compile(r"^\d{4}-\d{2}-\d{2}_")
 
 
-def suggest_meetings(session: Session, item: InboxItem, limit: int = 5) -> list[tuple[Meeting, float]]:
+def suggest_meetings(
+    session: Session, item: InboxItem, limit: int = 5
+) -> list[tuple[Meeting, float]]:
     """Réunions du jour de référence, triées par similarité décroissante."""
     meetings = session.scalars(select(Meeting).where(Meeting.date == _reference_day(item))).all()
     scored = [(meeting, _score(_file_name(item.path), meeting.title)) for meeting in meetings]

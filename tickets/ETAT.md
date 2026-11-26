@@ -16,7 +16,7 @@ Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqu
 | V1-06 | Page Entrée, rattachement et consentement | V1-03, V1-04, V1-05 | fait | 2 | 24f3d04 |
 | V1-07 | Brouillons sans envoi | V1-05 | fait | 1 | 8ec5d5e |
 | V1-08 | Orchestrateur du pipeline | V1-03, V1-04, V1-05 | fait | 1 | ecea27d |
-| V2-C1 | Corrections de la vague 1 | aucun | à faire | 0 | |
+| V2-C1 | Corrections de la vague 1 | aucun | fait | 2 |  |
 | V2-01 | Lecture des transcripts Teams | V1-06, V1-08 | à faire | 0 | |
 | V2-02 | Lecture des notes | V2-01 | à faire | 0 | |
 | V2-03 | Transcription audio locale | V2-01 | à faire | 0 | |

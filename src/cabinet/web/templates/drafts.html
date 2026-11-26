@@ -43,6 +43,7 @@
             <p>
               <a href="{{ draft.mailto }}">Ouvrir dans la messagerie</a>
             </p>
+            <label for="message-{{ draft.id }}">Message à copier</label>
             <textarea id="message-{{ draft.id }}" rows="6" readonly>{{ draft.subject }}
 
 {{ draft.body }}</textarea>

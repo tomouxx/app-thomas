@@ -14,9 +14,9 @@ from cabinet.web.app import create_app
 
 def test_sante_renvoie_200_et_le_json_du_contrat() -> None:
     """GET /sante renvoie 200 et le JSON du contrat."""
-    reponse = TestClient(create_app()).get("/sante")
-    assert reponse.status_code == 200
-    assert reponse.json() == {"statut": "ok", "version": version("cabinet")}
+    response = TestClient(create_app()).get("/sante")
+    assert response.status_code == 200
+    assert response.json() == {"statut": "ok", "version": version("cabinet")}
 
 
 def test_create_app_desactive_les_pages_de_documentation() -> None:
@@ -34,6 +34,6 @@ def test_version_du_paquet_vient_des_metadonnees() -> None:
 
 def test_commande_version_affiche_la_version() -> None:
     """`cabinet version` affiche la version du paquet."""
-    resultat = CliRunner().invoke(cli_app, ["version"])
-    assert resultat.exit_code == 0
-    assert version("cabinet") in resultat.output
+    result = CliRunner().invoke(cli_app, ["version"])
+    assert result.exit_code == 0
+    assert version("cabinet") in result.output
