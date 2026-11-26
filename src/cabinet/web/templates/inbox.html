@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block titre %}Entrée — Cabinet{% endblock %}
+
+{% block contenu %}
+<h1>Entrée</h1>
+
+{% for group in groups %}
+  {% if group.elements %}
+  <section aria-label="{{ group.label }}">
+    <h2>{{ group.label }}</h2>
+    <ul class="inbox">
+      {% for item in group.elements %}
+        <li>
+          <p class="fichier">
+            {{ item.name }} — {{ item.kind }}{% if item.name_date %} — {{ item.name_date }}{% endif %}{% if item.meeting %} — {{ item.meeting }}{% endif %}
+          </p>
+          {% if item.error_message %}
+            <p class="erreur">{{ item.error_message }}</p>
+          {% endif %}
+          {% if item.status in ("a_rattacher", "consentement_requis") %}
+            <form method="post" action="/entree/{{ item.id }}/rattacher">
+              {% for suggestion in item.suggestions %}
+                <label>
+                  <input type="radio" name="meeting_id" value="{{ suggestion.id }}">
+                  {{ suggestion.title }}
+                </label>
+              {% endfor %}
+              <p>Réunion hors agenda :</p>
+              <input type="text" name="titre" placeholder="Titre de la réunion">
+              <input type="date" name="date">
+              {% if item.kind == "audio" %}
+                <label>
+                  <input type="checkbox" name="consentement">
+                  J'ai l'accord des participants pour cet enregistrement
+                </label>
+              {% endif %}
+              <button type="submit">Rattacher</button>
+            </form>
+          {% endif %}
+          {% if item.status in ("a_rattacher", "consentement_requis", "pret", "erreur") %}
+            <form method="post" action="/entree/{{ item.id }}/ignorer">
+              <button type="submit">Ignorer</button>
+            </form>
+          {% endif %}
+          {% if item.status == "erreur" %}
+            <form method="post" action="/entree/{{ item.id }}/reessayer">
+              <button type="submit">Réessayer</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+{% endfor %}
+{% endblock %}

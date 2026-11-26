@@ -1,14 +1,15 @@
 """Base, moteur, sessions et type de date consciente du fuseau (specs/05 §2.1).
 
 Le chemin de la base est résolu à chaque appel : changer `CABINET_HOME`
-entre deux appels donne un autre moteur et une autre base. Le cache par
-chemin est le seul état global toléré hors de la configuration.
+entre deux appels donne un autre moteur et une autre base. Un seul moteur
+est conservé à la fois : changer de chemin libère le précédent, pour que les
+connexions inactives ne s'accumulent pas. C'est le seul état global toléré
+hors de la configuration.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -52,9 +53,19 @@ def _db_path() -> Path:
     return paths().db_file
 
 
-@cache
+# Un seul moteur à la fois : un nouveau chemin libère le précédent, pour que
+# les connexions inactives ne s'accumulent pas (specs/05 §2.1).
+_engines: dict[str, Engine] = {}
+
+
 def _engine(path: str) -> Engine:
-    """Moteur de SQLite, mis en cache sur le chemin (specs/05 §2.1)."""
+    """Moteur de SQLite, un seul à la fois : le précédent est libéré (specs/05 §2.1)."""
+    engine = _engines.get(path)
+    if engine is not None:
+        return engine
+    for previous in _engines.values():
+        previous.dispose()
+    _engines.clear()
     engine = create_engine(f"sqlite:///{path}", connect_args={"timeout": 30})
 
     @event.listens_for(engine, "connect")
@@ -62,6 +73,7 @@ def _engine(path: str) -> Engine:
         # Connexion brute de DBAPI (sqlite3), pas une connexion SQLAlchemy.
         connection.execute("PRAGMA foreign_keys=ON")
 
+    _engines[path] = engine
     return engine
 
 

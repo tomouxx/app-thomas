@@ -19,6 +19,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from cabinet.db.base import init_db
 from cabinet.web.routes import dashboard as routes_dashboard
+from cabinet.web.routes import inbox as routes_inbox
 from cabinet.web.routes import journal as routes_journal
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver"]
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(routes_journal.router)
     app.include_router(routes_dashboard.router)
+    app.include_router(routes_inbox.router)
 
     @app.get("/sante")
     def health() -> dict[str, str]:
