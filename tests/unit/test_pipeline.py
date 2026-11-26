@@ -144,9 +144,9 @@ def test_stale_lock_recreated_by_other_process_raises_busy(
 
 
 def test_build_pipeline_assemble_ingestion_puis_agenda(lock: Path) -> None:
-    """Lot 1 : ingestion puis agenda, verrou du répertoire de données (specs/05 §3.3)."""
+    """Lot 2 : ingestion, agenda puis transcripts (specs/05 §3.3)."""
     pipeline = build_pipeline(load_settings())
-    assert [agent.name for agent in pipeline._agents] == ["ingestion", "agenda"]
+    assert [agent.name for agent in pipeline._agents] == ["ingestion", "agenda", "transcripts"]
     assert pipeline._lock_path == paths().lock_file
 
 

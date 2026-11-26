@@ -20,6 +20,7 @@ from cabinet.agents.agenda import AgendaAgent
 from cabinet.agents.base import Agent, AgentOutcome
 from cabinet.agents.ingestion import IngestionAgent
 from cabinet.agents.journal import record_run
+from cabinet.agents.transcripts import TranscriptsAgent
 from cabinet.config import Settings, paths
 from cabinet.db.models import AgentRun
 
@@ -115,9 +116,10 @@ class Pipeline:
 
 
 def build_pipeline(settings: Settings) -> Pipeline:
-    """Les agents du lot 1, dans l'ordre (specs/05 §3.3)."""
+    """Les agents du lot 2, dans l'ordre (specs/05 §3.3)."""
     agents: list[Agent] = [
         IngestionAgent(FolderInbox(paths().inbox)),
         AgendaAgent(IcsCalendarSource(settings.agenda.ics_path)),
+        TranscriptsAgent(),
     ]
     return Pipeline(agents, paths().lock_file)

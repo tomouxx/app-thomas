@@ -1,0 +1,29 @@
+WEBVTT
+
+NOTE Jeu synthétique de l'exécutant pour V2-01. Noms fictifs.
+
+STYLE
+::cue { color: white; }
+
+REGION
+id: zone
+width: 80%
+
+1
+00:00:01.000 --> 00:00:04.500
+<v Alice Exemple>Bonjour à tous, on commence le point hebdo.</v>
+
+2
+00:00:05.000 --> 00:00:09.250
+<v Bruno Fictif>Le lot A est livré &amp; la recette démarre lundi.</v>
+
+3
+00:00:10.000 --> 00:00:11.000
+<v Bruno Fictif></v>
+
+00:01:02.000 --> 00:01:05.000
+<v.loud Alice Exemple>On garde la <b>date</b> du 3 décembre.
+
+01:00:00.000 --> 01:00:02.000
+<v Chloé Test>Merci,
+à la semaine prochaine.
