@@ -1,21 +1,26 @@
 """Tableau de bord et page Réglages (specs/08 §2).
 
 `GET /` affiche les réunions des sept prochains jours, les quatre compteurs
-et l'échéance des imputations. `GET /reglages` affiche les réglages en
-lecture seule. Les deux relisent les réglages à chaque requête ; une erreur
-de configuration répond 500 avec le gabarit d'erreur (specs/08 §1.2).
+et l'échéance des imputations. `POST /traiter` exécute le pipeline puis
+redirige vers l'accueil avec un résumé. `GET /reglages` affiche les réglages
+en lecture seule. Les routes relisent les réglages à chaque requête ; une
+erreur de configuration répond 500 avec le gabarit d'erreur (specs/08 §1.2).
 """
 
 from __future__ import annotations
 
 from datetime import date, timedelta
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from cabinet import clock
+from cabinet.agents.base import AgentOutcome
+from cabinet.agents.pipeline import PipelineBusy, build_pipeline
 from cabinet.config import Settings, load_settings, paths
 from cabinet.db.base import get_session
 from cabinet.db.models import (
@@ -71,6 +76,21 @@ def settings_page(request: Request) -> Any:
         "settings.html",
         {"home": str(paths().home), "sections": settings_sections(settings)},
     )
+
+
+@router.post("/traiter")
+def process_now(request: Request) -> Any:
+    """Exécute le pipeline puis redirige vers l'accueil avec un résumé (specs/08 §2.3)."""
+    try:
+        settings = load_settings()
+    except ConfigError as error:
+        return error_page(request, 500, str(error))
+    pipeline = build_pipeline(settings)
+    try:
+        result = pipeline.run(get_session)
+    except PipelineBusy:
+        return _redirect_with_message("Un traitement est déjà en cours.")
+    return _redirect_with_message(_run_summary(result))
 
 
 def upcoming_meetings(session: Session) -> list[dict[str, Any]]:
@@ -168,6 +188,27 @@ def deadline_text(deadline: date | None, today: date) -> str | None:
     if days == 0:
         return "aujourd'hui"
     return "échéance dépassée"
+
+
+def _redirect_with_message(message: str) -> RedirectResponse:
+    """Redirection 303 vers l'accueil, message encodé dans l'adresse (specs/08 §1.2)."""
+    return RedirectResponse(f"/?message={quote(message)}", status_code=303)
+
+
+def _run_summary(result: dict[str, AgentOutcome | str]) -> str:
+    """Résumé du passage : « Traitement terminé. » suivi d'un fragment par agent."""
+    fragments = [_fragment_agent(name, value) for name, value in result.items()]
+    return "Traitement terminé. " + ", ".join(fragments)
+
+
+def _fragment_agent(name: str, value: AgentOutcome | str) -> str:
+    """Fragment d'un agent : `{name} : {traités}`, `({n} erreur(s))` ou « en échec »."""
+    if isinstance(value, str):
+        return f"{name} en échec"
+    fragment = f"{name} : {value.processed}"
+    if value.errors > 0:
+        fragment += f" ({value.errors} erreur(s))"
+    return fragment
 
 
 def error_page(request: Request, code: int, message: str) -> Any:

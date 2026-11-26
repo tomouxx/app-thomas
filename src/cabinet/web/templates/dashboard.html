@@ -37,4 +37,11 @@
   <p>{{ deadline }}</p>
 </section>
 {% endif %}
+
+<section aria-label="Traitement">
+  <h2>Traitement</h2>
+  <form action="/traiter" method="post">
+    <button type="submit">Traiter maintenant</button>
+  </form>
+</section>
 {% endblock %}

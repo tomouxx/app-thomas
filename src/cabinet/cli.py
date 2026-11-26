@@ -7,7 +7,9 @@ import importlib.metadata
 import typer
 from pydantic import BaseModel
 
+from cabinet.agents.pipeline import PipelineBusy, build_pipeline
 from cabinet.config import DEFAULT_SETTINGS_TOML, load_settings, paths
+from cabinet.db.base import get_session, init_db
 from cabinet.llm.client import LocalLLM
 from cabinet.llm.types import ConfigError, LLMError, Message
 
@@ -50,6 +52,30 @@ def init() -> None:
         data_paths.config.mkdir(parents=True, exist_ok=True)
         data_paths.settings_file.write_text(DEFAULT_SETTINGS_TOML, encoding="utf-8")
         typer.echo(f"créé : {data_paths.settings_file}")
+
+
+@app.command()
+def run() -> None:
+    """Exécute le pipeline et affiche une ligne par agent (specs/03 §5.3)."""
+    settings = load_settings()
+    init_db()
+    pipeline = build_pipeline(settings)
+    try:
+        result = pipeline.run(get_session)
+    except PipelineBusy:
+        typer.echo("Un traitement est déjà en cours.")
+        raise typer.Exit(code=2) from None
+    code = 0
+    for name, value in result.items():
+        if isinstance(value, str):
+            typer.echo(f"{name} : échec : {value}")
+            code = 1
+        else:
+            typer.echo(f"{name} : {value.processed} traité(s), {value.errors} erreur(s)")
+            if value.errors > 0:
+                code = 1
+    if code != 0:
+        raise typer.Exit(code=code)
 
 
 @app.command()
