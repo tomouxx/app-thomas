@@ -12,7 +12,7 @@ Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqu
 | V1-02 | Modèle de données | V1-01 | fait | 2 | 5ce56a4 |
 | V1-03 | Dossier d'entrée et agent d'ingestion | V1-02 | fait | 1 | a9dc641 |
 | V1-04 | Agenda par fichier ICS | V1-02 | fait | 1 | 6d13fb7 |
-| V1-05 | Gabarit web et tableau de bord | V1-02 | fait | 1 |  |
+| V1-05 | Gabarit web et tableau de bord | V1-02 | fait | 1 | 846cc5b |
 | V1-06 | Page Entrée, rattachement et consentement | V1-03, V1-04, V1-05 | à faire | 0 | |
 | V1-07 | Brouillons sans envoi | V1-05 | à faire | 0 | |
 | V1-08 | Orchestrateur du pipeline | V1-03, V1-04, V1-05 | à faire | 0 | |
