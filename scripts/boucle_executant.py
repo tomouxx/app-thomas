@@ -46,6 +46,7 @@ VERIFS = DOSSIER / "verifs"
 FICHIER_PID = DOSSIER / "boucle.pid"
 # Posé par la page de suivi : la boucle s'arrête avant le ticket suivant.
 FICHIER_PAUSE = DOSSIER / "pause"
+FICHIER_DELAI = DOSSIER / "delai_session"  # minutes, lu pendant la session : allonge ou raccourcit le délai sans relance
 ETAT = RACINE / "tickets" / "ETAT.md"
 ETAT_REL = "tickets/ETAT.md"
 
@@ -521,11 +522,15 @@ def lancer_session(ticket: dict, tentative: int, echec: str | None, args) -> dic
         )
         lecteur.start()
         delai_depasse = False
-        try:
-            proc.wait(timeout=args.delai_session * 60)
-        except subprocess.TimeoutExpired:
-            delai_depasse = True
-            arreter_groupe(proc)
+        while True:
+            try:
+                proc.wait(timeout=30)
+                break
+            except subprocess.TimeoutExpired:
+                if time.monotonic() - debut >= delai_courant(args) * 60:
+                    delai_depasse = True
+                    arreter_groupe(proc)
+                    break
         lecteur.join(timeout=10)
         _session_en_cours = None
     resultat = bilan["resultat"] or {}
@@ -757,7 +762,7 @@ def traiter(ticket: dict, args) -> None:
             valider(ticket, tentative)
             return
         if bilan["delai_depasse"]:
-            message = f"La session a dépassé le délai de {args.delai_session} minutes.\n" + message
+            message = f"La session a dépassé le délai de {delai_courant(args)} minutes.\n" + message
         echec = message
         echecs.append(message)
     bloquer(ticket, tentative, echecs)
@@ -778,6 +783,14 @@ def a_traiter(vague: int, seul: str | None) -> tuple[list[dict], list[dict]]:
         dependances = [tickets[d]["etat"] for d in t["depend"] if d in tickets]
         (prets if all(e == "fait" for e in dependances) else sautes).append(t)
     return prets, sautes
+
+
+def delai_courant(args) -> int:
+    """Délai de session en minutes : `.chaine/delai_session` s'il existe et se lit, sinon l'option."""
+    try:
+        return max(1, int(FICHIER_DELAI.read_text().strip()))
+    except (OSError, ValueError):
+        return args.delai_session
 
 
 def interrompre(signum, _cadre) -> None:

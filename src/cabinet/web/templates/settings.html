@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block titre %}Réglages — Cabinet{% endblock %}
+
+{% block contenu %}
+<h1>Réglages</h1>
+<p class="aide">Lecture seule : le fichier <code>reglages.toml</code> se modifie à la main.</p>
+<p>Répertoire de données : <code>{{ home }}</code></p>
+
+{% for section in sections %}
+  <section aria-label="{{ section.name }}">
+    <h2>{{ section.name }}</h2>
+    <dl>
+      {% for key, value in section.fields %}
+        <dt>{{ key }}</dt>
+        <dd><code>{{ value }}</code></dd>
+      {% endfor %}
+    </dl>
+  </section>
+{% endfor %}
+{% endblock %}

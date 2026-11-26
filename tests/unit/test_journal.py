@@ -76,6 +76,25 @@ def test_erreur_longue_est_tronquee_a_deux_mille_caracteres(session) -> None:
     assert longueur == 2000
 
 
+def test_interruption_laisse_la_ligne_a_erreur_et_remonte(session) -> None:
+    """Une interruption laisse la ligne à `erreur` et remonte (specs/05 §2.2)."""
+    with pytest.raises(KeyboardInterrupt), record_run(session, "essai"):
+        raise KeyboardInterrupt()
+    statut = session.execute(text("SELECT status FROM agent_run")).scalar_one()
+    message = session.execute(text("SELECT error FROM agent_run")).scalar_one()
+    assert statut == "erreur"
+    assert message == "KeyboardInterrupt"
+
+
+def test_exception_annule_le_travail_en_attente(session) -> None:
+    """Un objet ajouté avant une exception n'est pas enregistré (specs/05 §2.2)."""
+    with pytest.raises(RuntimeError), record_run(session, "essai"):
+        session.add(AgentRun(agent="autre", started_at=clock.now()))
+        raise RuntimeError("échec")
+    noms = [ligne[0] for ligne in session.execute(text("SELECT agent FROM agent_run ORDER BY id"))]
+    assert noms == ["essai"]
+
+
 def test_get_session_renvoie_des_sessions_neuves() -> None:
     """Chaque appel renvoie une session neuve, sans expiration au commit."""
     init_db()

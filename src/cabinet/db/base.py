@@ -1,15 +1,15 @@
 """Base, moteur, sessions et type de date consciente du fuseau (specs/05 §2.1).
 
 Le chemin de la base est résolu à chaque appel : changer `CABINET_HOME`
-entre deux appels donne un autre moteur et une autre base. Le cache par
-chemin est le seul état global toléré hors de la configuration.
+entre deux appels donne un autre moteur et une autre base. Un seul moteur
+est conservé à la fois : changer de chemin libère le précédent, pour que les
+connexions inactives ne s'accumulent pas. C'est le seul état global toléré
+hors de la configuration.
 """
 
 from __future__ import annotations
 
-import os
 from datetime import UTC, datetime
-from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +18,7 @@ from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.types import TypeDecorator
 
 from cabinet import clock
+from cabinet.config import paths
 
 
 class Base(DeclarativeBase):
@@ -47,31 +48,40 @@ class TZDateTime(TypeDecorator):
         return value.replace(tzinfo=UTC).astimezone(clock.LOCAL_TZ)
 
 
-def _chemin_base() -> Path:
-    """Fichier de la base, calculé sur place (avant V1-01, specs/03 §1)."""
-    maison = os.environ.get("CABINET_HOME", "").strip()
-    home = Path(maison).expanduser().resolve() if maison else Path("~/Cabinet").expanduser()
-    return home / "data" / "cabinet.db"
+def _db_path() -> Path:
+    """Fichier de la base, via les chemins du répertoire de données (specs/03 §1)."""
+    return paths().db_file
 
 
-@cache
-def _moteur(chemin: str) -> Engine:
-    """Moteur de SQLite, mis en cache sur le chemin (specs/05 §2.1)."""
-    moteur = create_engine(f"sqlite:///{chemin}", connect_args={"timeout": 30})
+# Un seul moteur à la fois : un nouveau chemin libère le précédent, pour que
+# les connexions inactives ne s'accumulent pas (specs/05 §2.1).
+_engines: dict[str, Engine] = {}
 
-    @event.listens_for(moteur, "connect")
-    def _activer_cles_etrangeres(connexion: Any, _identification: Any) -> None:
+
+def _engine(path: str) -> Engine:
+    """Moteur de SQLite, un seul à la fois : le précédent est libéré (specs/05 §2.1)."""
+    engine = _engines.get(path)
+    if engine is not None:
+        return engine
+    for previous in _engines.values():
+        previous.dispose()
+    _engines.clear()
+    engine = create_engine(f"sqlite:///{path}", connect_args={"timeout": 30})
+
+    @event.listens_for(engine, "connect")
+    def _enable_foreign_keys(connection: Any, _identifier: Any) -> None:
         # Connexion brute de DBAPI (sqlite3), pas une connexion SQLAlchemy.
-        connexion.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA foreign_keys=ON")
 
-    return moteur
+    _engines[path] = engine
+    return engine
 
 
 def get_engine() -> Engine:
     """Moteur de la base du répertoire courant, chemin résolu à chaque appel."""
-    chemin = _chemin_base()
-    chemin.parent.mkdir(parents=True, exist_ok=True)
-    return _moteur(str(chemin))
+    path = _db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return _engine(str(path))
 
 
 def get_session() -> Session:

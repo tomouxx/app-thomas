@@ -36,11 +36,16 @@ Rien de tout cela n'est dans le dépôt. Le dépôt ne contient que la configura
 ## 3. Lancer une vague
 
 ```
-scripts/chaine.sh demarrer                 # modèle sur 8080, passerelle sur 4000
-nohup python3 scripts/suivi.py >/dev/null 2>&1 &
+scripts/chaine.sh demarrer                 # modèle sur 8080 (la passerelle lancée ici meurt avec le terminal)
+scripts/lancer.sh passerelle               # passerelle sur 4000, tâche launchd
+scripts/lancer.sh suivi
+scripts/lancer.sh relecteurs
 git switch vague-N                         # la phase A du relecteur doit être faite
-nohup caffeinate -i python3 scripts/boucle_executant.py N >> .chaine/boucle.log 2>&1 &
+scripts/lancer.sh boucle N                 # sous caffeinate -i
+scripts/lancer.sh etat                     # tâches en cours
 ```
+
+`scripts/lancer.sh` fait de chaque processus une tâche launchd de la session macOS. Lancés par `nohup … &` depuis une session Claude, même détachés par `setsid`, la boucle, la passerelle et le suivi s'arrêtaient avec elle sans laisser d'évènement d'arrêt (25.11.2026, deux fois). launchd ne relance pas une tâche arrêtée. `scripts/lancer.sh arreter boucle` arrête la boucle proprement.
 
 `caffeinate -i` empêche la mise en veille tant que la boucle tourne. Il ne protège ni d'un capot fermé ni d'un redémarrage : dans ces deux cas la boucle et les serveurs s'arrêtent, et il faut reprendre comme en section 6. Une vague dure plusieurs heures, mieux vaut brancher la machine au secteur.
 
@@ -48,7 +53,7 @@ La boucle refuse de démarrer si un prérequis manque et dit lequel : `python3` 
 
 Pour chaque ticket « à faire » dont les dépendances sont « fait », dans l'ordre de `tickets/ETAT.md` :
 
-1. Elle lance `claude -p` avec la consigne du ticket. La session n'a que les outils Bash, Read, Edit, Write, Glob et Grep. Les commandes autorisées sont listées dans `AUTORISES`, en tête du script. Toute autre commande est refusée sans rien demander.
+1. Elle lance `claude -p` avec la consigne du ticket. La session n'a que les outils Bash, Read, Edit, Write, Glob et Grep. Les commandes autorisées sont listées dans `AUTORISES`, en tête du script. Toute autre commande est refusée sans rien demander. L'écriture hors du dépôt (`/tmp`, `/var/folders`, `~/Cabinet`) est refusée, comme la lecture de `~/Cabinet`.
 2. Elle restaure les fichiers protégés que la session aurait touchés et le note (évènement `garde`).
 3. Elle lance `make install` si `.venv` manque ou si `pyproject.toml` ou `Makefile` ont changé, puis `make check`.
 4. Elle exige que les tests de contrat du ticket aient tourné et réussi pendant ce `make check` (rapport écrit par `tests/contrats/conftest.py`).
@@ -56,14 +61,18 @@ Pour chaque ticket « à faire » dont les dépendances sont « fait », dans l'
 6. Sinon : nouvelle session avec la fin de la sortie en échec. Trois sessions au plus par ticket.
 7. Après trois échecs : `git stash` des modifications, note factuelle dans `tickets/notes/ID.md`, ticket « bloqué », commit `[VN-etat] ID bloqué`.
 
-La boucle s'arrête quand plus aucun ticket de la vague n'est prêt. Un ticket dont une dépendance est bloquée reste « à faire » et apparaît comme « sauté » dans le journal.
+Après chaque commit de ticket, `scripts/relecteurs.py`, s'il est en veille, fait relire le commit par six agents Claude (section 4).
+
+La boucle s'arrête quand plus aucun ticket de la vague n'est prêt, ou avant le ticket suivant si le fichier `.chaine/pause` existe (bouton Pilotage de la page de suivi). Un ticket dont une dépendance est bloquée reste « à faire » et apparaît comme « sauté » dans le journal.
 
 ## 4. Surveiller
 
-- Page de suivi : `http://127.0.0.1:8770/`. Les mêmes données en JSON : `http://127.0.0.1:8770/etat.json`.
+- Page de suivi : `http://127.0.0.1:8770/`. Huit onglets : Direct (schéma animé, rejeu d'une session, pensée de l'exécutant mot à mot), Runs (sessions et comparaison), Tickets (une fiche par ticket, de la spec au constat posé sur le diff), Revues (constats des relecteurs et tri par Thomas), Couverture (critères et tests de contrat), Mesures (rapport de vague prérempli, temps, débit, coûts), Carte du code, Garde (refus, erreurs, écritures hors du dépôt). Un bandeau signale les alertes de santé. Le bouton Pilotage met la boucle en pause, l'arrête ou la reprend, et gère la veille des relecteurs et les notifications macOS. Il ne lance jamais une nouvelle vague. Les données en JSON : `http://127.0.0.1:8770/api/etat`.
+- La page n'écrit que dans `.chaine/suivi/` (tri des constats, journal de ses actions, réglages) et `.chaine/pause`. Ses requêtes d'écriture exigent l'hôte local, l'origine de la page et un jeton tiré à son démarrage.
+- Relecteurs automatiques : `scripts/relecteurs.py` en veille relit chaque commit de ticket sous cinq angles (conformité, principes, tests, code, conduite de la session), puis un vérificateur confirme ou rejette chaque constat. Rapports dans `.chaine/revues/<ticket>.json` et `.md`, relectures précédentes dans `.chaine/revues/archives/`. Relire un ticket à la main : `python3 scripts/relecteurs.py --ticket ID`. Environ un dollar par ticket. Les relecteurs observent : rien n'est renvoyé à l'exécutant.
 - Journal de la chaîne : `.chaine/journal.jsonl`, une ligne JSON par évènement.
 - Sortie complète de chaque session : `.chaine/sessions/ID-tN.jsonl`.
-- Sorties de `make install` et `make check` : `.chaine/verifs/`.
+- Sorties de `make install` et `make check`, et rapport JUnit de chaque vérification : `.chaine/verifs/`.
 - Sortie de la boucle : `.chaine/boucle.log`.
 
 Le dossier `.chaine/` est ignoré localement (`.git/info/exclude`). Il ne part jamais dans un commit.
@@ -85,7 +94,8 @@ Le relecteur lance la phase B avec `CABINET_CONTRATS=tous make check`, pour que 
 - Reprendre en repartant du dernier commit : `python3 scripts/boucle_executant.py N --nettoyer`. Les modifications vont dans `git stash`.
 - Rejouer un ticket bloqué après un réglage de la chaîne : `python3 scripts/boucle_executant.py --remettre ID`, commit de `tickets/ETAT.md`, puis relance de la boucle.
 - Arrêter les serveurs : `scripts/chaine.sh arreter`.
-- Après un redémarrage de la machine : `scripts/chaine.sh demarrer`, relance de `scripts/suivi.py`, puis reprise de la boucle avec `--nettoyer`. La session coupée ne compte pas comme une tentative si `tickets/ETAT.md` revient à son dernier commit, ce que fait `--nettoyer`.
+- Mettre en pause après le ticket en cours : `touch .chaine/pause`, ou le bouton Pilotage de la page.
+- Après un redémarrage de la machine : `scripts/chaine.sh demarrer`, relance de `scripts/suivi.py` et de `scripts/relecteurs.py`, puis reprise de la boucle avec `--nettoyer`. La session coupée ne compte pas comme une tentative si `tickets/ETAT.md` revient à son dernier commit, ce que fait `--nettoyer`.
 
 ## 7. Quand la chaîne coince
 
@@ -116,9 +126,9 @@ Qwen3.8 raisonne par défaut au niveau le plus élevé (`xhigh` dans son gabarit
 
 La boucle s'y adapte sans toucher au modèle : 120 minutes par session, 32 000 tokens de sortie par tour, et lecture de `scripts/`, `chaine/` et `revues/` refusée à l'exécutant. Pour baisser le raisonnement, il faudrait un serveur qui transmet les arguments du gabarit (`mlx_lm.server` ou llama.cpp avec `reasoning_effort` à `medium`).
 
-## 9. Mesures de la vague 0
+## 9. Mesures de vague
 
-Le rapport `revues/vague-0.md` reprend les mesures de `specs/09 §6.1` : tickets terminés sans aide, interventions, tickets bloqués, durée. La page de suivi les calcule à partir du journal. Un ticket « terminé sans aide » est un ticket « fait » sans intervention entre son premier lancement et son commit.
+Le rapport `revues/vague-N.md` reprend les mesures de `specs/09 §6` : tickets terminés sans aide, interventions, tickets bloqués, durée. L'onglet Mesures de la page de suivi les calcule à partir du journal et donne un Markdown à coller dans le rapport. La vague 0 a fini ses trois tickets en 3 h 05, sans intervention (`revues/vague-0.md`). Un ticket « terminé sans aide » est un ticket « fait » sans intervention entre son premier lancement et son commit.
 
 Seuil de `specs/09 §6.1` : trois tickets terminés et deux interventions de Thomas au plus.
 

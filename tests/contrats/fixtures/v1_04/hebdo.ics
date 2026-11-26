@@ -1,0 +1,15 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Cabinet//Jeu synthetique V1-04//FR
+BEGIN:VEVENT
+UID:point-hebdo@exemple.test
+DTSTAMP:20261001T080000Z
+DTSTART;TZID=Europe/Zurich:20261005T090000
+DTEND;TZID=Europe/Zurich:20261005T093000
+RRULE:FREQ=WEEKLY;BYDAY=MO
+SUMMARY:Point hebdo
+LOCATION:Visio
+ORGANIZER;CN=Alice Martin:mailto:alice.martin@exemple.test
+ATTENDEE;CN=Bruno Petit:mailto:bruno.petit@exemple.test
+END:VEVENT
+END:VCALENDAR

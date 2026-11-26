@@ -1,0 +1,26 @@
+{
+  "_note": "Jeu synthétique du relecteur pour les réunions à venir (V1-05, specs/08 §2.1). Jour fixé : mardi 24.11.2026. Fenêtre attendue : du 24.11.2026 au 01.12.2026, bornes incluses. Les identifiants ne suivent pas l'ordre chronologique. Seule la série du comité de pilotage est suivie.",
+  "series": [
+    {"id": 1, "key": "comite de pilotage", "label": "Comité de pilotage", "followed": true},
+    {"id": 2, "key": "revue budget", "label": "Revue budget"},
+    {"id": 3, "key": "atelier prospective", "label": "Atelier prospective"},
+    {"id": 4, "key": "point matinal", "label": "Point matinal"},
+    {"id": 5, "key": "reunion passee", "label": "Réunion passée"},
+    {"id": 6, "key": "revue lointaine", "label": "Revue lointaine"}
+  ],
+  "event": [
+    {"id": 1, "uid": "evt-comite@exemple.test", "title": "Comité de pilotage", "start": "2026-12-01T10:00:00+01:00", "end": "2026-12-01T11:00:00+01:00", "organizer": "claire.dupont@exemple.test", "attendees": ["paul.durand@exemple.test"]},
+    {"id": 2, "uid": "evt-budget@exemple.test", "title": "Revue budget", "start": "2026-11-24T14:00:00+01:00", "end": "2026-11-24T15:00:00+01:00"},
+    {"id": 4, "uid": "evt-matinal@exemple.test", "title": "Point matinal", "start": "2026-11-24T09:00:00+01:00", "end": "2026-11-24T09:30:00+01:00"},
+    {"id": 5, "uid": "evt-passee@exemple.test", "title": "Réunion passée", "start": "2026-11-23T10:00:00+01:00", "end": "2026-11-23T11:00:00+01:00"},
+    {"id": 6, "uid": "evt-lointaine@exemple.test", "title": "Revue lointaine", "start": "2026-12-02T09:00:00+01:00", "end": "2026-12-02T10:00:00+01:00"}
+  ],
+  "meeting": [
+    {"id": 1, "event_id": 1, "series_id": 1, "title": "Comité de pilotage", "date": "2026-12-01"},
+    {"id": 2, "event_id": 2, "series_id": 2, "title": "Revue budget", "date": "2026-11-24"},
+    {"id": 3, "event_id": null, "series_id": 3, "title": "Atelier prospective", "date": "2026-11-26"},
+    {"id": 4, "event_id": 4, "series_id": 4, "title": "Point matinal", "date": "2026-11-24"},
+    {"id": 5, "event_id": 5, "series_id": 5, "title": "Réunion passée", "date": "2026-11-23"},
+    {"id": 6, "event_id": 6, "series_id": 6, "title": "Revue lointaine", "date": "2026-12-02"}
+  ]
+}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block titre %}Tableau de bord — Cabinet{% endblock %}
+
+{% block contenu %}
+<h1>Tableau de bord</h1>
+
+<section aria-label="Réunions à venir">
+  <h2>Réunions des sept prochains jours</h2>
+  {% if meetings %}
+    <ul class="meetings">
+      {% for meeting in meetings %}
+        <li>
+          {{ meeting.date }}{% if meeting.time %} à {{ meeting.time }}{% endif %} —
+          {{ meeting.title }}{% if meeting.followed %} (série suivie){% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Aucune réunion dans les sept prochains jours.</p>
+  {% endif %}
+</section>
+
+<section aria-label="Compteurs">
+  <h2>Compteurs</h2>
+  <ul class="counters">
+    <li>Fichiers à traiter : {{ counters.inbox }}</li>
+    <li>Brouillons à relire : {{ counters.drafts }}</li>
+    <li>Actions ouvertes : {{ counters.actions }}</li>
+    <li>Comptes rendus à relire : {{ counters.minutes }}</li>
+  </ul>
+</section>
+
+{% if deadline %}
+<section aria-label="Échéance des imputations">
+  <h2>Échéance des imputations</h2>
+  <p>{{ deadline }}</p>
+</section>
+{% endif %}
+
+<section aria-label="Traitement">
+  <h2>Traitement</h2>
+  <form action="/traiter" method="post">
+    <button type="submit">Traiter maintenant</button>
+  </form>
+</section>
+{% endblock %}

@@ -187,6 +187,27 @@ def boucle_vivante() -> bool:
         return False
 
 
+def signes_de_vie(evenements: list[dict]) -> dict:
+    """Ce que le voyant de la page résume : session de Qwen vivante, relecteurs, dernière activité."""
+    session = False
+    try:
+        pid = int(DEPOT.pid.read_text())
+        enfants = subprocess.run(["pgrep", "-P", str(pid), "-f", "claude"], capture_output=True,
+                                 text=True, check=False, timeout=3).stdout
+        session = bool(enfants.strip())
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    fichiers = [f for f in (DEPOT.chaine / "sessions").glob("*.jsonl")] if (DEPOT.chaine / "sessions").is_dir() else []
+    dernier = max((f.stat().st_mtime for f in fichiers), default=None)
+    boucle = [e["evt"] for e in evenements if e.get("evt", "").startswith("boucle_")]
+    return {
+        "session": session,
+        "relecteurs": pid_vivant(DEPOT.revues / "veille.pid", "relecteurs") is not None,
+        "activite_s": round(time.time() - dernier) if dernier else None,
+        "dernier_boucle": boucle[-1] if boucle else None,
+    }
+
+
 _LMS_CACHE: dict = {"t": 0.0, "v": None}
 _VERROU = threading.Lock()
 
@@ -543,6 +564,14 @@ def compter_contrats() -> int:
     return total
 
 
+def delai_fichier() -> int | None:
+    """Délai réglé pendant la vague par `.chaine/delai_session` (lu aussi par la boucle)."""
+    try:
+        return max(1, int((DEPOT.chaine / "delai_session").read_text().strip()))
+    except (OSError, ValueError):
+        return None
+
+
 def construire_etat() -> dict:
     evenements = lire_journal()
     tickets = lire_tickets()
@@ -601,7 +630,7 @@ def construire_etat() -> dict:
         "dernier_reglage": next((e for e in reversed(interventions) if e.get("auteur") != "Thomas"), None),
         "nb_contrats": compter_contrats(),
         "dernier_commit": commits[-1] if commits else None,
-        "delai_session": debuts[-1].get("delai_session") if debuts else None,
+        "delai_session": delai_fichier() or (debuts[-1].get("delai_session") if debuts else None),
     }
     chaine = {
         "modele_8080": port_ouvert(8080),
@@ -610,6 +639,7 @@ def construire_etat() -> dict:
         "lmstudio": etat_lmstudio(),
         "batterie": etat_batterie(),
         "pause": DEPOT.pause.exists(),
+        **signes_de_vie(evenements),
     }
     revues = etat_revues(evenements)
     alertes = calculer_alertes(evenements, runs, chaine, tickets, mesures, revues)
@@ -1589,6 +1619,12 @@ button{font:inherit;color:inherit}
 .sur{font:11.5px var(--mono);color:var(--doux);letter-spacing:.04em;text-transform:uppercase}
 h1{font-size:19px;margin:0;line-height:1.2}
 .pastilles{display:flex;flex-wrap:wrap;gap:8px}
+.voyant{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;border:1px solid var(--trait);background:var(--surface);flex-basis:100%;order:-1;font-size:14px}
+.voyant i{width:14px;height:14px;border-radius:50%;background:var(--gris);flex:none}
+.voyant b{white-space:nowrap} .voyant span{color:var(--doux);font-size:12.5px}
+.voyant.ok i{background:var(--bon);animation:battre 1.6s infinite} .voyant.ok{border-color:var(--bon)}
+.voyant.attention i{background:var(--alerte)} .voyant.attention{border-color:var(--alerte)}
+.voyant.ko i{background:var(--critique)} .voyant.ko{border-color:var(--critique);color:var(--critique)}
 .pastille{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--trait);background:var(--surface);font-size:12.5px;white-space:nowrap}
 .pastille i{width:8px;height:8px;border-radius:50%;background:var(--gris)}
 .pastille.ok i{background:var(--bon)} .pastille.ko i{background:var(--critique)} .pastille.vif i{background:var(--accent);animation:battre 1.2s infinite}
@@ -1802,6 +1838,7 @@ a.mono,td.nw{white-space:nowrap!important}
 .tri button:last-child{border-right:0} .tri button:hover{background:var(--surface-2)}
 .tri button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
 td .tri{margin-left:0}
+@media (max-width:1200px){td .tri{flex-direction:column;border-radius:8px} td .tri button{border-right:0;border-bottom:1px solid var(--trait);text-align:left} td .tri button:last-child{border-bottom:0}}
 .matrice{display:grid;gap:3px;overflow-x:auto}
 .matrice .rang{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:center}
 .matrice .rang>a{font:600 12px var(--mono);color:var(--accent);text-decoration:none}
@@ -1830,6 +1867,7 @@ dialog::backdrop{background:rgba(10,10,25,.45)}
 .pil-g{border-top:1px solid var(--trait);padding:10px 0}
 .pil-g h3{margin:0 0 6px;font-size:13px} .pil-g .l{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pil-g p{margin:0 0 8px;font-size:13px;color:var(--doux)}
+#avis{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:8px 14px;border-radius:8px;background:var(--surface-2);border:1px solid var(--trait);font-size:13px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.15)} #avis.ko{border-color:var(--critique);color:var(--critique)}
 #pil-message{font-size:13px;min-height:20px;padding-top:8px} #pil-message.ok{color:var(--bon)} #pil-message.ko{color:var(--critique)}
 .cartes,#fiche,#revues,#detail{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
 .carte{min-width:0}
@@ -1840,9 +1878,11 @@ table.simple td.n,table.simple th{white-space:nowrap}
 </head>
 <body>
 <header class="haut">
+  <div id="voyant" class="voyant" role="status" aria-live="polite"><i></i><b>…</b><span></span></div>
   <div class="marque"><div class="logo" aria-hidden="true">C</div>
     <div><div class="sur">Cabinet · chaîne de développement</div><h1 id="titre">Vague</h1></div></div>
   <div class="haut-d"><div class="pastilles" id="pastilles" aria-live="polite"></div>
+    <button type="button" class="bouton" id="b-theme" title="Thème : automatique, clair ou sombre">Thème : auto</button>
     <button type="button" class="bouton" id="b-pilotage">Pilotage</button></div>
 </header>
 <nav class="onglets" role="tablist">
@@ -2181,7 +2221,10 @@ function pastilles(){
   $("#pastilles").innerHTML = p(c.modele_8080 ? (gen ? "vif" : "ok") : "ko", "modèle " + (c.modele_8080 ? (gen ? "génère" : "au repos") : "éteint"))
     + p(c.passerelle_4000 ? "ok" : "ko", "passerelle " + (c.passerelle_4000 ? "prête" : "éteinte"))
     + p(c.boucle ? "vif" : "", "boucle " + (c.boucle ? "en marche" : "à l'arrêt"))
+    + p(c.boucle ? (c.session ? "vif" : "ok") : "", "Qwen " + (c.session ? "travaille" : "sans session"))
+    + p(c.relecteurs ? "ok" : "ko", "relecteurs " + (c.relecteurs ? "en veille" : "à l'arrêt"))
     + p("", "branche " + etat.branche);
+  voyant();
   $("#titre").textContent = etat.mesures.vague != null ? `Vague ${etat.mesures.vague}` : "Chaîne";
 }
 
@@ -2399,22 +2442,81 @@ async function rafraichir(){
     $("#flux-aide").textContent = `mis à jour ${heure(e.genere)}`;
     rendre();
     if (onglet === "runs" && runSel && Date.now() - detailCharge > 6000 && !document.querySelector("#detail details[open]:hover")) detail();
-  } catch (err) { $("#flux-aide").textContent = "page de suivi injoignable, nouvel essai…"; }
+  } catch (err) { $("#flux-aide").textContent = "page de suivi injoignable, nouvel essai…";
+    voyant("ko", "Serveur de suivi injoignable", "Cette page ne reçoit plus rien. Relancez scripts/suivi.py, l'état réel de la vague est inconnu."); }
+}
+/* Thème : automatique (réglage du système), clair ou sombre. Le choix reste dans ce navigateur. */
+const THEMES = [["auto","auto"], ["light","clair"], ["dark","sombre"]];
+function appliquerTheme(t){
+  if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t;
+  const b = $("#b-theme"); if (b) b.textContent = "Thème : " + THEMES.find(x => x[0] === t)[1];
+}
+let theme = "auto";
+try { theme = localStorage.getItem("suivi-theme") || "auto"; } catch {}
+if (!THEMES.some(x => x[0] === theme)) theme = "auto";
+appliquerTheme(theme);
+document.addEventListener("click", e => {
+  if (!e.target.closest("#b-theme")) return;
+  theme = THEMES[(THEMES.findIndex(x => x[0] === theme) + 1) % THEMES.length][0];
+  appliquerTheme(theme);
+  try { localStorage.setItem("suivi-theme", theme); } catch {}
+  if (typeof rendre === "function") { revuesSig = ""; rendre(); }
+});
+/* Voyant global : vert si tout tourne, orange si quelque chose demande un coup d'œil, rouge si c'est arrêté. */
+function voyant(force, titreF, detailF){
+  let cls, titre, detail;
+  if (force){ cls = force; titre = titreF; detail = detailF; }
+  else {
+    const c = etat.chaine, act = c.activite_s, min = act == null ? null : Math.round(act / 60);
+    const ilya = min == null ? "" : min < 1 ? "dernière activité à l'instant" : `dernière activité il y a ${min} min`;
+    if (!c.boucle){
+      if (c.dernier_boucle === "boucle_fin"){ cls = ""; titre = "Vague terminée"; detail = "La boucle a traité tous les tickets prêts."; }
+      else if (c.pause){ cls = "attention"; titre = "En pause"; detail = "La boucle s'est arrêtée entre deux tickets à votre demande."; }
+      else { cls = "ko"; titre = "Arrêté"; detail = "La boucle ne tourne pas." + (ilya ? " " + ilya[0].toUpperCase() + ilya.slice(1) + "." : ""); }
+    } else if (!c.passerelle_4000 || !c.modele_8080){
+      cls = "ko"; titre = "Bloqué"; detail = (!c.passerelle_4000 ? "La passerelle est éteinte" : "Le modèle ne répond pas") + ", Qwen ne peut plus avancer.";
+    } else if (c.session && act != null && act > 900){
+      cls = "attention"; titre = "Silencieux"; detail = `Qwen n'a rien produit depuis ${min} min. Le modèle est peut-être bloqué.`;
+    } else {
+      cls = "ok"; titre = "En marche";
+      detail = (c.session ? `Qwen travaille sur ${etat.en_cours ? etat.en_cours.ticket : "un ticket"}` : "Vérification ou passage au ticket suivant") + (ilya ? ", " + ilya : "") + ".";
+    }
+    if (!c.relecteurs && cls === "ok"){ cls = "attention"; detail += " Les relecteurs sont à l'arrêt."; }
+  }
+  const v = $("#voyant"); if (!v) return;
+  v.className = "voyant " + cls; v.querySelector("b").textContent = titre; v.querySelector("span").textContent = detail;
+  const couleur = {ok:"#0ca30c", attention:"#c98500", ko:"#d03b3b"}[cls] || "#9a98a8";
+  let ic = document.querySelector('link[rel="icon"]'); if (!ic){ ic = document.createElement("link"); ic.rel = "icon"; document.head.append(ic); }
+  ic.href = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="${couleur}"/></svg>`);
+  document.title = titre + " · Chaîne Cabinet";
 }
 /* ====================================================================
    Suite : alertes, rejeu, pensée en direct, comparaison, fiche de ticket,
    tri des constats, couverture, mesures, carte du code, garde, pilotage
    ==================================================================== */
-const JETON = "__JETON__";
+let JETON = "__JETON__";
 const tampon = {};
 async function charger(cle, url, ms = 15000, force = false){
   const c = tampon[cle]; if (!force && c && Date.now() - c.t < ms) return c.v;
   const v = await api(url).catch(() => null); if (v) tampon[cle] = {t: Date.now(), v}; return v || (c && c.v);
 }
 function poser(sel, html){ const el = typeof sel === "string" ? $(sel) : sel; if (!el || el._h === html) return false; el._h = html; el.innerHTML = html; return true; }
-async function poster(url, corps){
-  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json", "X-Suivi-Jeton":JETON}, body:JSON.stringify(corps)});
+/* Un onglet ouvert avant un redémarrage du suivi garde l'ancien jeton : sur un refus,
+   la page reprend le jeton du serveur et renvoie la requête une fois. */
+async function poster(url, corps, reessai = true){
+  let r;
+  try { r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json", "X-Suivi-Jeton":JETON}, body:JSON.stringify(corps)}); }
+  catch { return {ok:false, message:"serveur de suivi injoignable"}; }
+  if (r.status === 403 && reessai){
+    const j = await api("/api/jeton").catch(() => null);
+    if (j && j.jeton && j.jeton !== JETON){ JETON = j.jeton; return poster(url, corps, false); }
+  }
   return r.json().catch(() => ({ok:false, message:"réponse illisible"}));
+}
+function avis(texte, ko = true){
+  let n = $("#avis"); if (!n){ n = document.createElement("div"); n.id = "avis"; n.setAttribute("role", "status"); document.body.append(n); }
+  n.textContent = texte; n.className = ko ? "ko" : ""; n.hidden = false;
+  clearTimeout(avis.t); avis.t = setTimeout(() => { n.hidden = true; }, 6000);
 }
 const tuiles = L => L.map(([v,l]) => `<div class="kpi"><b>${v === "" || v == null ? "–" : v}</b><span>${esc(l)}</span></div>`).join("");
 const STATUT_C = {confirme:"confirmé", rejete:"rejeté", incertain:"incertain"};
@@ -2551,6 +2653,7 @@ document.addEventListener("click", async e => {
     const dejala = b.getAttribute("aria-pressed") === "true";
     const r = await poster("/api/tri", {cle: b.parentElement.dataset.cle, decision: dejala ? "" : b.dataset.d});
     if (r.ok){ b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", !dejala && x === b)); delete tampon["fiche:" + ficheSel]; revuesSig = ""; rafraichir(); }
+    else avis("Décision non enregistrée : " + (r.message || "erreur inconnue") + ". Rechargez la page si cela se répète.");
     return; }
   const t = e.target.closest("[data-fiche]"); if (t){ e.preventDefault(); ouvrirFiche(t.dataset.fiche); return; }
   const r = e.target.closest("[data-aller-run]"); if (r){ e.preventDefault(); runSel = r.dataset.allerRun; document.querySelector('[data-onglet="runs"]').click(); detail(); }
@@ -2862,6 +2965,7 @@ class Gestionnaire(BaseHTTPRequestHandler):
 
         routes = {
             "/api/etat": construire_etat,
+            "/api/jeton": lambda: {"jeton": JETON},
             "/etat.json": construire_etat,
             "/api/revues": rapports_avec_tri,
             "/api/couverture": couverture,

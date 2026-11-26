@@ -7,14 +7,15 @@ Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqu
 | V0-01 | Squelette du dépôt | aucun | fait | 1 | b906080 |
 | V0-02 | Client du modèle local et garde de bouclage | V0-01 | fait | 1 | 7e563a6 |
 | V0-03 | Journal des exécutions d'agent | V0-01 | fait | 1 | 22d0111 |
-| V1-01 | Configuration et répertoire de données | V0-02, V0-03 | à faire | 0 | |
-| V1-02 | Modèle de données | V1-01 | à faire | 0 | |
-| V1-03 | Dossier d'entrée et agent d'ingestion | V1-02 | à faire | 0 | |
-| V1-04 | Agenda par fichier ICS | V1-02 | à faire | 0 | |
-| V1-05 | Gabarit web et tableau de bord | V1-02 | à faire | 0 | |
-| V1-06 | Page Entrée, rattachement et consentement | V1-03, V1-04, V1-05 | à faire | 0 | |
-| V1-07 | Brouillons sans envoi | V1-05 | à faire | 0 | |
-| V1-08 | Orchestrateur du pipeline | V1-03, V1-04, V1-05 | à faire | 0 | |
+| V1-C1 | Corrections de la vague 0 | aucun | fait | 2 | 8ebf21e |
+| V1-01 | Configuration et répertoire de données | V0-02, V0-03 | fait | 3 | 3fc5df6 |
+| V1-02 | Modèle de données | V1-01 | fait | 2 | 5ce56a4 |
+| V1-03 | Dossier d'entrée et agent d'ingestion | V1-02 | fait | 1 | a9dc641 |
+| V1-04 | Agenda par fichier ICS | V1-02 | fait | 1 | 6d13fb7 |
+| V1-05 | Gabarit web et tableau de bord | V1-02 | fait | 1 | 846cc5b |
+| V1-06 | Page Entrée, rattachement et consentement | V1-03, V1-04, V1-05 | fait | 2 | 24f3d04 |
+| V1-07 | Brouillons sans envoi | V1-05 | fait | 1 | 8ec5d5e |
+| V1-08 | Orchestrateur du pipeline | V1-03, V1-04, V1-05 | fait | 1 | ecea27d |
 | V2-01 | Lecture des transcripts Teams | V1-06, V1-08 | à faire | 0 | |
 | V2-02 | Lecture des notes | V2-01 | à faire | 0 | |
 | V2-03 | Transcription audio locale | V2-01 | à faire | 0 | |
