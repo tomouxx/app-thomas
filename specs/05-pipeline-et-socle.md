@@ -33,7 +33,7 @@ Algorithme de `get_engine` :
 
 1. Déterminer le fichier de la base : `paths().db_file`. Avant la tâche V1-01, le calculer sur place à partir de `CABINET_HOME`, avec `~/Cabinet` en repli.
 2. Créer le dossier parent s'il manque.
-3. Renvoyer le moteur de ce chemin, par une fonction privée mise en cache sur le chemin (`functools.lru_cache`) :
+3. Renvoyer le moteur de ce chemin. Un dictionnaire privé garde un seul moteur à la fois : un appel sur le même chemin renvoie le même moteur, un appel sur un autre chemin libère le précédent (`Engine.dispose()`) et crée le nouveau :
 
    ```python
    create_engine(f"sqlite:///{chemin}", connect_args={"timeout": 30})
@@ -41,7 +41,9 @@ Algorithme de `get_engine` :
 
    avec un écouteur `connect` qui exécute `PRAGMA foreign_keys=ON` sur chaque nouvelle connexion.
 
-Le chemin est résolu à chaque appel. Changer `CABINET_HOME` entre deux appels donne donc deux moteurs et deux bases. Ce cache par chemin est le seul état global toléré hors de la configuration.
+Le chemin est résolu à chaque appel. Changer `CABINET_HOME` entre deux appels donne donc deux moteurs et deux bases. Ce cache est le seul état global toléré hors de la configuration.
+
+Pourquoi un seul moteur (décision du 26.11.2026, `revues/vague-1.md`) : chaque test ouvre une base dans un répertoire neuf. Un cache sans borne gardait un moteur et ses connexions par test, et la suite a épuisé la limite de fichiers ouverts du processus (`OSError: [Errno 24]`) pendant V1-06.
 
 `get_session()` renvoie `Session(get_engine(), expire_on_commit=False)`. La session est neuve à chaque appel. L'appelant la ferme, de préférence par `with get_session() as session`.
 
@@ -187,6 +189,8 @@ Un nom qui commence par `AAAA-MM-JJ_` donne `name_date` (expression `^(\d{4})-(\
 3. Pour chaque fichier restant, calculer le sha256 par blocs de 1 Mio, la nature et `name_date`.
 4. Renvoyer un `InboxFile` par fichier, avec le chemin absolu et la taille en octets.
 
+Un fichier qui ne peut pas être lu au moment du calcul d'empreinte (`OSError`, par exemple des droits retirés) est laissé de côté comme un fichier en cours de copie, sans lever d'erreur. Il est repris au passage suivant. Il ne peut pas devenir un élément à l'état `erreur`, faute d'empreinte (décision du 26.11.2026, question Q2 de `revues/vague-1-questions.md`).
+
 ### 5.3 `IngestionAgent.run`
 
 1. Appeler `inbox.scan()`.
@@ -238,7 +242,7 @@ class AgendaAgent:
    | `uid` | `UID` | chaîne |
    | `title` | `SUMMARY` | chaîne, « (sans titre) » si absent |
    | `start`, `end` | `DTSTART`, `DTEND` | converties dans `LOCAL_TZ`. Une heure sans fuseau est prise dans `LOCAL_TZ`. Sans `DTEND`, `end` vaut `start` |
-   | `all_day` | type de `DTSTART` | vrai si c'est une date sans heure. `start` vaut alors minuit de ce jour dans `LOCAL_TZ`, et `end` minuit du jour de `DTEND` |
+   | `all_day` | type de `DTSTART` | vrai si c'est une date sans heure. `start` vaut alors minuit de ce jour dans `LOCAL_TZ`, et `end` minuit du jour de `DTEND`. Sans `DTEND`, la journée dure un jour (RFC 5545) : `end` vaut minuit du lendemain |
    | `location` | `LOCATION` | chaîne, `None` si absent ou vide |
    | `organizer` | `ORGANIZER` | adresse sans `mailto:`, en minuscules, `None` si absent |
    | `attendees` | `ATTENDEE` | adresses sans `mailto:`, en minuscules, dans l'ordre du fichier, sans doublon |
@@ -255,7 +259,9 @@ L'adaptateur lit un fichier local. Il ne lit jamais une adresse web et n'écrit 
 3. Pour chaque `EventData`, chercher la ligne `event` de mêmes `uid` et `start`. La créer si elle manque, sinon mettre à jour ses autres champs.
 4. Si l'évènement n'est ni annulé ni sur la journée entière :
    1. Calculer `series_key(title)`. Chercher la série de cette clé. La créer si elle manque, avec `label = title` et `followed` à faux.
-   2. Chercher la réunion de cet `event_id`. La créer si elle manque, avec le titre, la série et `date = start.date()`. Si elle existe, mettre à jour son titre et sa date.
+   2. Chercher la réunion de cet `event_id`. La créer si elle manque, avec le titre, la série et `date = start.date()`. Si elle existe, mettre à jour son titre et sa date, jamais sa série.
+
+Une réunion garde la série de sa création. Si un renommage change la clé de série, les réunions déjà créées restent dans l'ancienne série, et seules les réunions créées après le renommage rejoignent la nouvelle (décision du 26.11.2026, question Q1 de `revues/vague-1-questions.md`).
 5. Valider, puis renvoyer `AgentOutcome(processed=n)`, où `n` est le nombre d'évènements créés pendant ce passage.
 
 Ce que l'agent ne fait pas : il ne supprime jamais un évènement, une série ni une réunion. Un évènement retiré du fichier ICS reste en base. Une réunion déjà créée dont l'évènement devient annulé reste en base, et son évènement porte `cancelled` à vrai. Une occurrence déplacée donne une nouvelle ligne `event`, parce que la clé d'unicité inclut `start`.

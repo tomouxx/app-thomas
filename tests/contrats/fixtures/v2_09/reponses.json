@@ -1,0 +1,69 @@
+{
+  "special_lines": {
+    "50": "Claire Dubois : On valide le report de la mise en production au lundi 7 décembre.",
+    "60": "Marc Petit : J'envoie le planning révisé à l'équipe avant vendredi.",
+    "1700": "Sophie Martin : Je relance le fournisseur des licences dès demain matin.",
+    "2800": "Paul Girard : Le budget de recette est reconduit pour le trimestre suivant."
+  },
+  "parts": [
+    {
+      "summary": "Première partie : report de la mise en production.",
+      "decisions": [
+        {
+          "text": "Le report de la mise en production au 7 décembre est validé.",
+          "quote": "On valide le report de la mise en production au lundi 7 décembre."
+        }
+      ],
+      "actions": [
+        {
+          "description": "Envoyer le planning révisé à l'équipe avant vendredi",
+          "owner": "Marc Petit",
+          "due_date": "2026-12-04",
+          "quote": "J'envoie le planning révisé à l'équipe avant vendredi."
+        }
+      ],
+      "open_points": ["Budget de formation"],
+      "next_meeting": null
+    },
+    {
+      "summary": "Deuxième partie : relance du fournisseur des licences.",
+      "decisions": [
+        {
+          "text": "Le report de la mise en production au 7 decembre est valide",
+          "quote": "On valide le report de la mise en production au lundi 7 décembre."
+        }
+      ],
+      "actions": [
+        {
+          "description": "Envoyer le planning révisé à toute l'équipe avant vendredi",
+          "owner": "Marc Petit",
+          "due_date": null,
+          "quote": "J'envoie le planning révisé à l'équipe avant vendredi."
+        },
+        {
+          "description": "Relancer le fournisseur des licences",
+          "owner": "Sophie Martin",
+          "due_date": null,
+          "quote": "Je relance le fournisseur des licences dès demain matin."
+        }
+      ],
+      "open_points": ["Budget de formation", "Accès au serveur de test"],
+      "next_meeting": "Jeudi 10 décembre à 9 heures"
+    },
+    {
+      "summary": "Troisième partie : budget de recette.",
+      "decisions": [
+        {
+          "text": "Le budget de recette est reconduit.",
+          "quote": "Le budget de recette est reconduit pour le trimestre suivant."
+        }
+      ],
+      "actions": [],
+      "open_points": ["Accès au serveur de test"],
+      "next_meeting": null
+    }
+  ],
+  "final_summary": {
+    "summary": "Mise en production reportée au 7 décembre, fournisseur des licences relancé, budget de recette reconduit."
+  }
+}

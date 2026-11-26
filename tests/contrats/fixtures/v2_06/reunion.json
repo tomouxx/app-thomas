@@ -1,0 +1,135 @@
+{
+  "_note": "Jeu synthétique du relecteur pour V2-06 (specs/06 §7 et §8, specs/08 §4). La réunion 1 a un évènement, un transcript Teams et un compte rendu brouillon : une décision et une action vérifiées, une décision et une action inventées (verified faux). La réunion 2 est hors agenda, sans source ni compte rendu. Fichiers : un audio traité de la réunion 1 (à purger), un audio traité de la réunion 2, des notes traitées de la réunion 1 et un audio non traité de la réunion 1 (à garder). Date du jour fixée au 24.11.2026.",
+  "series": [
+    {"id": 1, "key": "comite de pilotage mensuel", "label": "Comité de pilotage mensuel"},
+    {"id": 2, "key": "point equipe", "label": "Point équipe"}
+  ],
+  "event": [
+    {
+      "id": 1,
+      "uid": "copil-2026-11-20@exemple.test",
+      "title": "Comité de pilotage",
+      "start": "2026-11-20T14:00:00+01:00",
+      "end": "2026-11-20T15:00:00+01:00",
+      "location": "Salle Jura",
+      "organizer": "alice.martin@exemple.test",
+      "attendees": [
+        "alice.martin@exemple.test",
+        "bruno.keller@exemple.test",
+        "chloe.favre@exemple.test"
+      ]
+    }
+  ],
+  "meeting": [
+    {"id": 1, "event_id": 1, "series_id": 1, "title": "Comité de pilotage", "date": "2026-11-20"},
+    {"id": 2, "series_id": 2, "title": "Point équipe", "date": "2026-11-18"}
+  ],
+  "inbox_item": [
+    {
+      "id": 1,
+      "path": "traite/2026-11/2026-11-20_comite-de-pilotage.vtt",
+      "kind": "teams_transcript",
+      "status": "traite",
+      "name_date": "2026-11-20",
+      "meeting_id": 1
+    },
+    {
+      "id": 2,
+      "path": "traite/2026-11/2026-11-20_comite-de-pilotage.m4a",
+      "kind": "audio",
+      "status": "traite",
+      "name_date": "2026-11-20",
+      "meeting_id": 1,
+      "consent_confirmed": true,
+      "consent_at": "2026-11-20T15:10:00+01:00"
+    },
+    {
+      "id": 3,
+      "path": "traite/2026-11/2026-11-18_point-equipe.m4a",
+      "kind": "audio",
+      "status": "traite",
+      "name_date": "2026-11-18",
+      "meeting_id": 2,
+      "consent_confirmed": true,
+      "consent_at": "2026-11-18T10:00:00+01:00"
+    },
+    {
+      "id": 4,
+      "path": "traite/2026-11/2026-11-20_notes-copil.md",
+      "kind": "notes",
+      "status": "traite",
+      "name_date": "2026-11-20",
+      "meeting_id": 1
+    },
+    {
+      "id": 5,
+      "path": "entree/2026-11-20_complement-copil.m4a",
+      "kind": "audio",
+      "status": "consentement_requis",
+      "name_date": "2026-11-20",
+      "meeting_id": 1
+    }
+  ],
+  "transcript": [
+    {
+      "id": 1,
+      "meeting_id": 1,
+      "inbox_item_id": 1,
+      "source": "teams",
+      "text": "Alice Martin : Nous validons le budget de la phase deux pour le premier trimestre.\nBruno Keller : Je prépare le planning détaillé avant le 30 novembre.\nChloé Favre : La question du recrutement reste ouverte pour l'instant.",
+      "segments": [
+        {"start_s": 0.0, "end_s": 6.5, "speaker": "Alice Martin", "text": "Nous validons le budget de la phase deux pour le premier trimestre."},
+        {"start_s": 6.5, "end_s": 11.0, "speaker": "Bruno Keller", "text": "Je prépare le planning détaillé avant le 30 novembre."},
+        {"start_s": 11.0, "end_s": 15.0, "speaker": "Chloé Favre", "text": "La question du recrutement reste ouverte pour l'instant."}
+      ]
+    }
+  ],
+  "minutes": [
+    {
+      "id": 1,
+      "meeting_id": 1,
+      "version": 1,
+      "summary": "Le comité a validé le budget de la phase deux et confié le planning à Bruno.",
+      "open_points": ["Recrutement d'un second développeur"],
+      "next_meeting": "Jeudi 3 décembre à 14 h"
+    }
+  ],
+  "decision": [
+    {
+      "id": 1,
+      "meeting_id": 1,
+      "minutes_id": 1,
+      "text": "Budget de la phase deux validé",
+      "quote": "Nous validons le budget de la phase deux pour le premier trimestre.",
+      "verified": true
+    },
+    {
+      "id": 2,
+      "meeting_id": 1,
+      "minutes_id": 1,
+      "text": "Le prestataire actuel est reconduit",
+      "quote": "Nous reconduisons le prestataire pour deux ans.",
+      "verified": false
+    }
+  ],
+  "action_item": [
+    {
+      "id": 1,
+      "meeting_id": 1,
+      "minutes_id": 1,
+      "description": "Préparer le planning détaillé",
+      "owner": "Bruno Keller",
+      "due_date": "2026-11-30",
+      "quote": "Je prépare le planning détaillé avant le 30 novembre.",
+      "verified": true
+    },
+    {
+      "id": 2,
+      "meeting_id": 1,
+      "minutes_id": 1,
+      "description": "Envoyer la convention signée",
+      "quote": "Chloé envoie la convention signée demain.",
+      "verified": false
+    }
+  ]
+}

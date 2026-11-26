@@ -1,0 +1,27 @@
+{
+  "summary": "La recette du lot 2 a pris trois jours de retard à cause du serveur de test. La mise en production est reportée au lundi 7 décembre. Le support, le client et le fournisseur des licences seront prévenus.",
+  "decisions": [
+    {
+      "text": "La mise en production est reportée au lundi 7 décembre.",
+      "quote": "On valide le report de la mise en production au lundi 7 décembre."
+    }
+  ],
+  "actions": [
+    {
+      "description": "Envoyer la relance au fournisseur des licences.",
+      "owner": "Sophie Martin",
+      "due_date": "2026-12-04",
+      "quote": "Oui, je l'envoie au plus tard le 4 décembre."
+    },
+    {
+      "description": "Prévenir l'équipe support et le client.",
+      "owner": null,
+      "due_date": null,
+      "quote": "Il faut prévenir l'équipe support et le client avant vendredi soir."
+    }
+  ],
+  "open_points": [
+    "Budget de formation sans réponse de la direction."
+  ],
+  "next_meeting": "Lundi 30 novembre à 9 heures"
+}

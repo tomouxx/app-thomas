@@ -1,0 +1,33 @@
+{
+  "summary": "La mise en production est reportée au 7 décembre. Le support, le client et le fournisseur seront prévenus.",
+  "decisions": [
+    {
+      "text": "Report de la mise en production au lundi 7 décembre.",
+      "quote": "D'ACCORD ; on valide le REPORT de la mise en production au Lundi 7 Decembre"
+    },
+    {
+      "text": "Licences gratuites dès janvier.",
+      "quote": "Le fournisseur livrera les licences gratuitement au service juridique dès le mois de janvier prochain."
+    },
+    {
+      "text": "Budget du lot 2 maintenu.",
+      "quote": "Claire Dubois : D'accord. On valide le report de la mise en production au lundi 7 décembre. Sophie Martin : Oui, je l'envoie au plus tard le 4 décembre, avec la liste des postes concernés. Marc Petit : Le budget sera doublé dès janvier selon une note confidentielle que personne n'a lue en séance."
+    }
+  ],
+  "actions": [
+    {
+      "description": "Prévenir le support et le client, puis mettre à jour le planning.",
+      "owner": null,
+      "due_date": null,
+      "quote": "Je préviens l'équipe support et le client avant mercredi soir, puis je mets à jour le planning du lot neuf."
+    },
+    {
+      "description": "Suivre le lot 2.",
+      "owner": "Marc Petit",
+      "due_date": null,
+      "quote": "lot 2"
+    }
+  ],
+  "open_points": [],
+  "next_meeting": null
+}

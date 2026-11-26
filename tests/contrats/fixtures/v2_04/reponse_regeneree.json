@@ -1,0 +1,23 @@
+{
+  "summary": "Retard de trois jours sur la recette du lot 2. Mise en production reportée au 7 décembre.",
+  "decisions": [
+    {
+      "text": "Report de la mise en production au 7 décembre.",
+      "quote": "On valide le report de la mise en production au lundi 7 décembre."
+    },
+    {
+      "text": "Le budget de formation sera revu au prochain point.",
+      "quote": "On en reparle au prochain point, lundi 30 novembre à 9 heures."
+    }
+  ],
+  "actions": [
+    {
+      "description": "Relancer le fournisseur des licences.",
+      "owner": "Sophie Martin",
+      "due_date": "2026-12-04",
+      "quote": "Oui, je l'envoie au plus tard le 4 décembre."
+    }
+  ],
+  "open_points": [],
+  "next_meeting": "Lundi 30 novembre à 9 heures"
+}

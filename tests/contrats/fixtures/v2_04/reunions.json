@@ -1,0 +1,71 @@
+{
+  "series": [
+    {"id": 1, "key": "point hebdo", "label": "Point hebdo"},
+    {"id": 2, "key": "comite de pilotage", "label": "Comité de pilotage"},
+    {"id": 3, "key": "atelier recette", "label": "Atelier recette"},
+    {"id": 4, "key": "revue mensuelle", "label": "Revue mensuelle"}
+  ],
+  "meeting": [
+    {"id": 1, "series_id": 1, "title": "Point hebdo", "date": "2026-11-23"},
+    {"id": 2, "series_id": 2, "title": "Comité de pilotage", "date": "2026-11-24"},
+    {"id": 3, "series_id": 3, "title": "Atelier recette", "date": "2026-11-25"},
+    {"id": 4, "series_id": 4, "title": "Revue mensuelle", "date": "2026-11-20"}
+  ],
+  "inbox_item": [
+    {"id": 1, "path": "traite/2026-11/2026-11-23_point-hebdo.vtt", "kind": "teams_transcript", "status": "traite", "meeting_id": 1},
+    {"id": 2, "path": "traite/2026-11/2026-11-24_comite-de-pilotage.vtt", "kind": "teams_transcript", "status": "traite", "meeting_id": 2},
+    {"id": 3, "path": "traite/2026-11/2026-11-24_notes-comite.md", "kind": "notes", "status": "traite", "meeting_id": 2},
+    {"id": 4, "path": "traite/2026-11/2026-11-24_comite-de-pilotage.m4a", "kind": "audio", "status": "traite", "meeting_id": 2, "consent_confirmed": true, "consent_at": "2026-11-24T08:00:00+01:00"},
+    {"id": 5, "path": "traite/2026-11/2026-11-20_revue-mensuelle.vtt", "kind": "teams_transcript", "status": "traite", "meeting_id": 4}
+  ],
+  "transcript": [
+    {
+      "id": 1,
+      "meeting_id": 1,
+      "inbox_item_id": 1,
+      "source": "teams",
+      "text": "Claire Dubois : Bonjour à tous, on commence le point hebdomadaire du projet Atlas.\nMarc Petit : La recette du lot 2 a pris trois jours de retard à cause du serveur de test.\nClaire Dubois : D'accord. On valide le report de la mise en production au lundi 7 décembre.\nMarc Petit : Il faut prévenir l'équipe support et le client avant vendredi soir.\nClaire Dubois : Sophie, tu peux envoyer la relance au fournisseur des licences ?\nSophie Martin : Oui, je l'envoie au plus tard le 4 décembre.\nClaire Dubois : Reste la question du budget de formation, sans réponse de la direction.\nClaire Dubois : On en reparle au prochain point, lundi 30 novembre à 9 heures."
+    },
+    {
+      "id": 2,
+      "meeting_id": 2,
+      "inbox_item_id": 2,
+      "source": "teams",
+      "text": "Paul Girard : Le comité valide le budget du lot 3.\nClaire Dubois : J'envoie le compte rendu au client demain."
+    },
+    {
+      "id": 3,
+      "meeting_id": 2,
+      "inbox_item_id": 3,
+      "source": "notes",
+      "text": "Notes de séance : prévoir une démonstration du lot 3 en janvier."
+    },
+    {
+      "id": 4,
+      "meeting_id": 2,
+      "inbox_item_id": 4,
+      "source": "audio",
+      "text": "Le risque principal reste la disponibilité du serveur de test."
+    },
+    {
+      "id": 5,
+      "meeting_id": 4,
+      "inbox_item_id": 5,
+      "source": "teams",
+      "text": "Julie Moreau : Rien de nouveau ce mois-ci, le planning tient."
+    }
+  ],
+  "minutes": [
+    {
+      "id": 1,
+      "meeting_id": 4,
+      "version": 1,
+      "content_md": "",
+      "summary": "Rien de nouveau ce mois-ci.",
+      "open_points": [],
+      "next_meeting": null,
+      "status": "brouillon",
+      "created_at": "2026-11-20T18:00:00+01:00"
+    }
+  ]
+}

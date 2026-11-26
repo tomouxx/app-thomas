@@ -244,7 +244,7 @@ Seul `config.py` connaît les chemins du répertoire de données. Aucun autre mo
 | Extraits | Contrôle déterministe de chaque citation par `difflib` | Seul moyen simple de repérer une décision inventée |
 | Relances | Gabarit, sans modèle | Un texte de relance ne doit pas varier |
 | Qualité | `make check` : `ruff check .` puis `pytest -q` | Une seule commande fait foi |
-| ruff | `select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM"]`, `line-length = 100`, `target-version = "py312"` | `specs/00 §4.8` |
+| ruff | `select = ["E4", "E7", "E9", "E501", "F", "I", "UP", "B", "SIM"]`, `line-length = 100`, `target-version = "py312"` | `specs/00 §4.8` |
 | Longueur | Une fonction de plus de 40 lignes est découpée | Lisible par un modèle local comme par un humain |
 | Langue du code | Identifiants en anglais. Textes d'interface, messages d'erreur et docstrings en français | Cohérence avec les réglages et les états |
 
@@ -256,7 +256,7 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM"]
+select = ["E4", "E7", "E9", "E501", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -127,7 +127,7 @@ Chaque scénario enchaîne plusieurs composants réels sur un répertoire tempor
 
 | Scénario | Étapes | Résultat attendu | Tâche de rattachement |
 | --- | --- | --- | --- |
-| S1, socle | `cabinet init`, agenda synthétique, un transcript, une note et un audio dans `entree/`, un passage | trois éléments aux états `a_rattacher`, `a_rattacher` et `consentement_requis`, évènements, séries et réunions créés, deux lignes `ok` au journal | V1-08 |
+| S1, socle | `cabinet init`, agenda synthétique, un transcript, une note et un audio dans `entree/`, un passage | trois éléments aux états `a_rattacher`, `a_rattacher` et `consentement_requis`, évènements, séries et réunions créés, une ligne `ok` au journal pour `ingestion` et pour `agenda` | V1-08 |
 | S2, passage répété | deux passages de suite sur les mêmes fichiers | aucun doublon d'élément, d'évènement, de série ni de réunion | V1-08 |
 | S3, verrou | un passage lancé pendant qu'un autre tient le verrou | `PipelineBusy`, verrou retiré à la fin du premier | V1-08 |
 | S4, consentement | rattacher l'audio sans la case, puis avec | 400 et état inchangé, puis `pret` avec `consent_at`. Un audio `pret` sans consentement n'atteint jamais le transcripteur | V2-03 |

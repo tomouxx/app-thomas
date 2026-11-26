@@ -194,7 +194,7 @@ Avec ruff 0.17.6, `ruff check .` sans configuration signale des règles de simpl
 
 Conséquences :
 
-- `pyproject.toml` fixe `select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM"]`, `line-length = 100` et `target-version = "py312"` (`specs/01 §5`).
+- `pyproject.toml` fixe `select = ["E4", "E7", "E9", "E501", "F", "I", "UP", "B", "SIM"]`, `line-length = 100` et `target-version = "py312"` (`specs/01 §5`).
 - `scripts/ruff.toml` et `tests/contrats/ruff.toml` fixent les mêmes règles pour les fichiers que l'exécutant ne peut pas modifier.
 
 ### 4.9 Une application typer à une seule commande ignore le nom de la commande

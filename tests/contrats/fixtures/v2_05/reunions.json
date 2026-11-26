@@ -1,0 +1,38 @@
+{
+  "series": [
+    {"id": 1, "key": "point projet atlas", "label": "Point projet Atlas"},
+    {"id": 2, "key": "comite de pilotage", "label": "Comité de pilotage"}
+  ],
+  "meeting": [
+    {"id": 1, "series_id": 1, "title": "Point projet Atlas", "date": "2026-11-23"},
+    {"id": 2, "series_id": 2, "title": "Comité de pilotage", "date": "2026-11-24"}
+  ],
+  "inbox_item": [
+    {"id": 1, "path": "traite/2026-11/2026-11-23_notes-atlas.md", "kind": "notes", "status": "traite", "meeting_id": 1},
+    {"id": 2, "path": "traite/2026-11/2026-11-24_comite-de-pilotage.vtt", "kind": "teams_transcript", "status": "traite", "meeting_id": 2},
+    {"id": 3, "path": "traite/2026-11/2026-11-24_notes-comite.md", "kind": "notes", "status": "traite", "meeting_id": 2}
+  ],
+  "transcript": [
+    {
+      "id": 1,
+      "meeting_id": 1,
+      "inbox_item_id": 1,
+      "source": "notes",
+      "text": "Je préviens l'équipe support et le client avant vendredi soir, puis je mets à jour le planning du lot deux.\nClaire Dubois : D'accord. On valide le report de la mise en production au lundi 7 décembre.\nSophie Martin : Oui, je l'envoie au plus tard le 4 décembre, avec la liste des postes concernés.\nMarc Petit : Le budget du lot 2 reste à 45 000 francs pour toute la durée du projet."
+    },
+    {
+      "id": 2,
+      "meeting_id": 2,
+      "inbox_item_id": 2,
+      "source": "teams",
+      "text": "Paul Girard : Le comité valide le budget du lot 3."
+    },
+    {
+      "id": 3,
+      "meeting_id": 2,
+      "inbox_item_id": 3,
+      "source": "notes",
+      "text": "Notes de séance : prévoir une démonstration du lot 3 en janvier, avec le client."
+    }
+  ]
+}

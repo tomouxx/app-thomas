@@ -844,7 +844,7 @@ def tests_contrat(ident: str) -> list[dict]:
             if not (isinstance(noeud, ast.FunctionDef) and noeud.name.startswith("test_")):
                 continue
             trouve = re.match(r"test_c(\d+)_(.*)", noeud.name)
-            libelle = trouve[2] if trouve else noeud.name.removeprefix("test_contrat_").removeprefix("test_")
+            libelle = trouve[2] if trouve else noeud.name.removeprefix("test_contrat_").removeprefix("test_contract_").removeprefix("test_")
             tests.append({
                 "nom": noeud.name,
                 "module": fichier.stem,

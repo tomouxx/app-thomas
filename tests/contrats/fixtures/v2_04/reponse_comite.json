@@ -1,0 +1,19 @@
+{
+  "summary": "Le comité valide le budget du lot 3. Une démonstration est prévue en janvier.",
+  "decisions": [
+    {
+      "text": "Budget du lot 3 validé.",
+      "quote": "Le comité valide le budget du lot 3."
+    }
+  ],
+  "actions": [
+    {
+      "description": "Envoyer le compte rendu au client.",
+      "owner": "Claire Dubois",
+      "due_date": null,
+      "quote": "J'envoie le compte rendu au client demain."
+    }
+  ],
+  "open_points": [],
+  "next_meeting": null
+}

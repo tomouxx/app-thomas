@@ -15,3 +15,14 @@ Proposition du relecteur pour Q1 et Q2, à confirmer par l'architecte avant le l
 - Q2 : l'élément est créé à l'état `erreur`, avec un message qui donne le nom du fichier, comme pour un fichier illisible au rattachement. Un test de contrat suivrait.
 
 Interprétations notées dans les tests, sans question ouverte : `mailto:` lu sans tenir compte de la casse, préfixe `app_` sans tenir compte de la casse, occurrence annulée rendue avec `cancelled` à vrai, case de consentement jamais cochée d'avance, garde d'origine appliquée à la lettre (`https://127.0.0.1:8765` et `null` refusés).
+
+## Réponses du 26.11.2026
+
+Thomas a délégué la décision au relecteur (« fait tout »). Elles sont reportées dans `specs/05`.
+
+| # | Décision | Où |
+| --- | --- | --- |
+| Q1 | Une réunion garde la série de sa création. Un renommage qui change la clé ne touche que les réunions créées après lui. C'est déjà le comportement du code. Un test de contrat le fixe dans V2-C1 | `specs/05 §6.2`, étape 4 |
+| Q2 | La proposition initiale ne tient pas : un élément d'entrée exige une empreinte unique et non vide. Un fichier illisible au calcul de l'empreinte est donc laissé de côté comme un fichier en cours de copie, sans erreur, et repris au passage suivant. Un test de contrat le fixe dans V2-C1 | `specs/05 §5.2` |
+| Q3 | Pas de changement. Le code 1 reste testé par un agent en exception | |
+| Q4 | Pas de changement. Le test reste juste avant et après V2-07 | |

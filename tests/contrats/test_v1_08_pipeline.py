@@ -149,6 +149,12 @@ def journal(colonnes: str = "agent, status") -> list[tuple]:
         ]
 
 
+def journal_socle() -> list[tuple]:
+    """Lignes des deux agents du lot 1. Les lots suivants ajoutent des agents après eux
+    (specs/05 §3.3), et ces contrats doivent rester justes quand ils arrivent."""
+    return [ligne for ligne in journal() if ligne[0] in ("ingestion", "agenda")]
+
+
 def compter(table: str) -> int:
     from cabinet.db.base import get_engine
 
@@ -443,7 +449,7 @@ def test_c5_cabinet_run_sort_avec_1_si_un_agent_echoue(environnement_isole: Path
     assert len(echec) == 1
     assert "Fichier d'agenda introuvable" in echec[0]
     assert lignes.index(ingestion[0]) < lignes.index(echec[0])
-    assert journal() == [("ingestion", "ok"), ("agenda", "erreur")]
+    assert journal_socle() == [("ingestion", "ok"), ("agenda", "erreur")]
 
 
 def test_c5_cabinet_run_sort_avec_2_si_occupe(environnement_isole: Path) -> None:
@@ -476,7 +482,7 @@ def test_c6_post_traiter_redirige_vers_l_accueil_avec_le_resume(environnement_is
     assert "agenda : " in message
     assert "Traitement terminé." in page
     assert "ingestion : 3" in page
-    assert journal() == [("ingestion", "ok"), ("agenda", "ok")]
+    assert journal_socle() == [("ingestion", "ok"), ("agenda", "ok")]
 
 
 def test_c6_resume_signale_un_agent_en_echec(environnement_isole: Path) -> None:
@@ -585,7 +591,7 @@ def test_contrat_build_pipeline_assemble_ingestion_puis_agenda(environnement_iso
     init_db()
     resultat = build_pipeline(load_settings()).run(get_session)
 
-    assert list(resultat) == ["ingestion", "agenda"]
+    assert list(resultat)[:2] == ["ingestion", "agenda"]
     assert isinstance(resultat["ingestion"], AgentOutcome)
     assert isinstance(resultat["agenda"], str)
     assert "Fichier d'agenda introuvable" in resultat["agenda"]
@@ -625,7 +631,7 @@ def test_contrat_scenario_s1_socle(environnement_isole: Path) -> None:
     assert compter("event") == 6
     assert cles == ["comite de pilotage", "point hebdo"]
     assert compter("meeting") == 6
-    assert journal() == [("ingestion", "ok"), ("agenda", "ok")]
+    assert journal_socle() == [("ingestion", "ok"), ("agenda", "ok")]
 
 
 def test_contrat_scenario_s2_passage_repete(environnement_isole: Path) -> None:
@@ -641,4 +647,4 @@ def test_contrat_scenario_s2_passage_repete(environnement_isole: Path) -> None:
     assert second.exit_code == 0, second.output
     assert "ingestion : 0 traité(s), 0 erreur(s)" in second.output.splitlines()
     assert {table: compter(table) for table in comptes} == comptes
-    assert journal() == [("ingestion", "ok"), ("agenda", "ok")] * 2
+    assert journal_socle() == [("ingestion", "ok"), ("agenda", "ok")] * 2
