@@ -322,3 +322,9 @@ Projection, à prendre comme une estimation : les tickets de la vague 1 ont dema
 2. Thomas trie les constats de V1-08 et de la seconde relecture de V1-02 dans l'onglet Revues de la page de suivi.
 3. Thomas tranche Q1 et Q2 de `revues/vague-1-questions.md`, qui touchent le lot 2.
 4. Phase A de la vague 2 : un ticket de correction V2-C1 en tête (R1 à R9 et les constats triés), l'alignement de `specs/05 §2.1` sur le cache de moteurs, les deux tests transversaux proposés plus haut et la règle `E501`.
+
+## Accord de Thomas
+
+Le 26.11.2026, Thomas a répondu « fait tout » à la liste de la suite proposée. Il donne ainsi son accord à la fusion et délègue au relecteur le tri des constats restants, les réponses à Q1 et Q2, puis la phase A et le lancement de la vague 2. La recette du lot 1 jouée par le relecteur tient lieu de recette. Avant un usage réel, Thomas doit encore vérifier que son agenda s'exporte en ICS (`specs/00 §4.13`).
+
+Tri des seize constats restants : quatre à corriger dans V2-C1 (verrou du pipeline peu testé, `ConfigError` non rattrapée par `cabinet run`, annotations des tests de V1-02), huit acceptés, quatre hors sujet. Chaque décision porte une note dans la page de suivi.
