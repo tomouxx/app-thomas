@@ -8,6 +8,7 @@
 #   scripts/lancer.sh etat                  tâches launchd de la chaîne
 #   scripts/lancer.sh arreter <nom>         arrête une tâche (la boucle reçoit SIGTERM et note son arrêt)
 # Aucune tâche n'est relancée par launchd quand elle s'arrête (KeepAlive faux).
+# Limite de fichiers ouverts portée à 4096 : celle de launchd (256) faisait échouer make check (V1-06).
 set -euo pipefail
 
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -37,6 +38,7 @@ $args  </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><false/>
   <key>ProcessType</key><string>Interactive</string>
+  <key>SoftResourceLimits</key><dict><key>NumberOfFiles</key><integer>4096</integer></dict>
 </dict></plist>
 EOF
   launchctl bootout "$DOMAINE/$label" 2>/dev/null || true
