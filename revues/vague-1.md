@@ -327,4 +327,4 @@ Projection, à prendre comme une estimation : les tickets de la vague 1 ont dema
 
 Le 26.11.2026, Thomas a répondu « fait tout » à la liste de la suite proposée. Il donne ainsi son accord à la fusion et délègue au relecteur le tri des constats restants, les réponses à Q1 et Q2, puis la phase A et le lancement de la vague 2. La recette du lot 1 jouée par le relecteur tient lieu de recette. Avant un usage réel, Thomas doit encore vérifier que son agenda s'exporte en ICS (`specs/00 §4.13`).
 
-Tri des seize constats restants : quatre à corriger dans V2-C1 (verrou du pipeline peu testé, `ConfigError` non rattrapée par `cabinet run`, annotations des tests de V1-02), huit acceptés, quatre hors sujet. Chaque décision porte une note dans la page de suivi.
+Tri des seize constats restants : trois à corriger dans V2-C1 (verrou du pipeline peu testé, `ConfigError` non rattrapée par `cabinet run`, annotations des tests de V1-02), neuf acceptés, quatre hors sujet. Chaque décision porte une note dans la page de suivi.
