@@ -23,6 +23,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+audio = ["mlx-whisper>=0.4.3"]
 dev = ["pytest>=9.2.0", "ruff>=0.17.6"]
 
 [project.scripts]

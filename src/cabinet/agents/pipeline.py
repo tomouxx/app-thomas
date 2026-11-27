@@ -16,10 +16,12 @@ from sqlalchemy.orm import Session
 
 from cabinet.adapters.folder_inbox import FolderInbox
 from cabinet.adapters.ics_calendar import IcsCalendarSource
+from cabinet.adapters.mlx_whisper_transcriber import MlxWhisperTranscriber
 from cabinet.agents.agenda import AgendaAgent
 from cabinet.agents.base import Agent, AgentOutcome
 from cabinet.agents.ingestion import IngestionAgent
 from cabinet.agents.journal import record_run
+from cabinet.agents.transcription import TranscriptionAgent
 from cabinet.agents.transcripts import TranscriptsAgent
 from cabinet.config import Settings, paths
 from cabinet.db.models import AgentRun
@@ -121,5 +123,6 @@ def build_pipeline(settings: Settings) -> Pipeline:
         IngestionAgent(FolderInbox(paths().inbox)),
         AgendaAgent(IcsCalendarSource(settings.agenda.ics_path)),
         TranscriptsAgent(),
+        TranscriptionAgent(MlxWhisperTranscriber(settings.transcription.model)),
     ]
     return Pipeline(agents, paths().lock_file)
