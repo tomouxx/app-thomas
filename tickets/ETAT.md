@@ -19,7 +19,7 @@ Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqu
 | V2-C1 | Corrections de la vague 1 | aucun | fait | 2 | 7999a2c |
 | V2-01 | Lecture des transcripts Teams | V1-06, V1-08 | fait | 1 | ab8ad1c |
 | V2-02 | Lecture des notes | V2-01 | fait | 1 | fa7a12b |
-| V2-03 | Transcription audio locale | V2-01 | fait | 1 |  |
+| V2-03 | Transcription audio locale | V2-01 | fait | 1 | c1dbd76 |
 | V2-04 | Agent de compte rendu, extraction structurée | V2-01 | à faire | 0 | |
 | V2-05 | Vérification des extraits | V2-04 | à faire | 0 | |
 | V2-06 | Page réunion, rendu et validation du compte rendu | V2-05, V1-07, V2-03 | à faire | 0 | |
