@@ -4,8 +4,9 @@ L'agent traite les réunions qui ont au moins un `transcript` et aucun
 `minutes`, par date puis par `id`. Pour chacune, il envoie la source au
 modèle local entre balises `<source>` et crée, dans une seule transaction, le
 compte rendu `version` 1 (état `brouillon`) et ses décisions et actions
-(`status` `ouvert`, `verified` à faux). Avant V2-05 le contrôle des extraits
-n'existe pas ; avant V2-06 `content_md` reste vide (specs/06 §4.3).
+(`status` `ouvert`). Après l'extraction, chaque extrait est contrôlé contre
+la source sans modèle et `verified` porte le résultat (specs/06 §5) ; avant
+V2-06 `content_md` reste vide (specs/06 §4.3).
 
 `regenerate` refait l'extraction sur un compte rendu `brouillon`, remplace
 les décisions et actions des versions non validées et crée la version
@@ -28,9 +29,15 @@ from cabinet.db.models import (
     Transcript,
     TranscriptSource,
 )
-from cabinet.llm.prompts.minutes import MinutesOut, build_minutes_messages
+from cabinet.llm.prompts.minutes import (
+    ActionOut,
+    DecisionOut,
+    MinutesOut,
+    build_minutes_messages,
+)
 from cabinet.llm.types import LLMError
 from cabinet.ports.llm import LLM
+from cabinet.services.quotes import verify_quote
 
 _SUMMARY_MAX_WORDS = 120
 _QUOTE_MAX_CHARS = 200
@@ -81,7 +88,7 @@ class MinutesAgent:
         )
         _apply_limits(result.parsed)
         _delete_unvalidated_items(session, meeting_id)
-        return _create_minutes(session, meeting_id, current.version + 1, result.parsed)
+        return _create_minutes(session, meeting_id, current.version + 1, result.parsed, source)
 
     def _process_meeting(self, session: Session, meeting: Meeting, outcome: AgentOutcome) -> None:
         """Extrait et range le compte rendu d'une réunion ; une erreur ne stoppe pas."""
@@ -95,7 +102,7 @@ class MinutesAgent:
             outcome.errors += 1
             return
         _apply_limits(result.parsed)
-        _create_minutes(session, meeting.id, 1, result.parsed)
+        _create_minutes(session, meeting.id, 1, result.parsed, source)
         outcome.processed += 1
         outcome.prompt_tokens += result.prompt_tokens or 0
         outcome.completion_tokens += result.completion_tokens or 0
@@ -158,9 +165,13 @@ def _trim_quote(quote: str) -> str:
 
 
 def _create_minutes(
-    session: Session, meeting_id: int, version: int, response: MinutesOut
+    session: Session, meeting_id: int, version: int, response: MinutesOut, source: str
 ) -> Minutes:
-    """Le compte rendu et ses éléments, dans une seule transaction (specs/06 §4.3)."""
+    """Le compte rendu et ses éléments, dans une seule transaction (specs/06 §4.3).
+
+    Chaque extrait est contrôlé contre la source et `verified` porte le
+    résultat (specs/06 §5).
+    """
     minutes = Minutes(
         meeting_id=meeting_id,
         version=version,
@@ -174,24 +185,48 @@ def _create_minutes(
     session.add(minutes)
     session.flush()  # l'identifiant du compte rendu est nécessaire aux éléments
     for item in response.decisions:
-        session.add(
-            Decision(
-                meeting_id=meeting_id, minutes_id=minutes.id, text=item.text, quote=item.quote
-            )
-        )
+        _add_decision(session, meeting_id, minutes.id, item, source)
     for item in response.actions:
-        session.add(
-            ActionItem(
-                meeting_id=meeting_id,
-                minutes_id=minutes.id,
-                description=item.description,
-                owner=item.owner,
-                due_date=item.due_date,
-                quote=item.quote,
-            )
-        )
+        _add_action_item(session, meeting_id, minutes.id, item, source)
     session.commit()
     return minutes
+
+
+def _add_decision(
+    session: Session, meeting_id: int, minutes_id: int, item: DecisionOut, source: str
+) -> None:
+    """Une décision et le contrôle de son extrait (specs/06 §5)."""
+    session.add(
+        Decision(
+            meeting_id=meeting_id,
+            minutes_id=minutes_id,
+            text=item.text,
+            quote=item.quote,
+            verified=_is_verified(item.quote, source),
+        )
+    )
+
+
+def _add_action_item(
+    session: Session, meeting_id: int, minutes_id: int, item: ActionOut, source: str
+) -> None:
+    """Une action et le contrôle de son extrait (specs/06 §5)."""
+    session.add(
+        ActionItem(
+            meeting_id=meeting_id,
+            minutes_id=minutes_id,
+            description=item.description,
+            owner=item.owner,
+            due_date=item.due_date,
+            quote=item.quote,
+            verified=_is_verified(item.quote, source),
+        )
+    )
+
+
+def _is_verified(quote: str, source: str) -> bool:
+    """Le contrôle déterministe de l'extrait contre la source (specs/06 §5)."""
+    return verify_quote(quote, source).found
 
 
 def _delete_unvalidated_items(session: Session, meeting_id: int) -> None:
