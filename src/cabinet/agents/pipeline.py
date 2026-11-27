@@ -21,10 +21,12 @@ from cabinet.agents.agenda import AgendaAgent
 from cabinet.agents.base import Agent, AgentOutcome
 from cabinet.agents.ingestion import IngestionAgent
 from cabinet.agents.journal import record_run
+from cabinet.agents.minutes import MinutesAgent
 from cabinet.agents.transcription import TranscriptionAgent
 from cabinet.agents.transcripts import TranscriptsAgent
 from cabinet.config import Settings, paths
 from cabinet.db.models import AgentRun
+from cabinet.llm.client import LocalLLM
 
 
 class PipelineBusy(Exception):
@@ -119,10 +121,12 @@ class Pipeline:
 
 def build_pipeline(settings: Settings) -> Pipeline:
     """Les agents du lot 2, dans l'ordre (specs/05 §3.3)."""
+    llm = LocalLLM(settings.llm.base_url, settings.llm.model, settings.llm.timeout_s)
     agents: list[Agent] = [
         IngestionAgent(FolderInbox(paths().inbox)),
         AgendaAgent(IcsCalendarSource(settings.agenda.ics_path)),
         TranscriptsAgent(),
         TranscriptionAgent(MlxWhisperTranscriber(settings.transcription.model)),
+        MinutesAgent(llm, settings.llm.context_tokens),
     ]
     return Pipeline(agents, paths().lock_file)

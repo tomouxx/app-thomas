@@ -1,0 +1,19 @@
+{
+  "summary": "Point hebdomadaire sur le projet Cabinet : avancement de la vague 2 et préparation des tests.",
+  "decisions": [
+    {
+      "text": "Conserver une branche par vague",
+      "quote": "On garde une branche par vague, c'est plus simple."
+    }
+  ],
+  "actions": [
+    {
+      "description": "Préparer la vague 2",
+      "owner": "Thomas",
+      "due_date": "2026-12-04",
+      "quote": "Thomas prépare la vague 2 pour le 4 décembre."
+    }
+  ],
+  "open_points": ["Choix du modèle de transcription"],
+  "next_meeting": "Le lundi suivant, à la même heure"
+}

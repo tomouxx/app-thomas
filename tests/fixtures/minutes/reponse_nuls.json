@@ -1,0 +1,14 @@
+{
+  "summary": "Réunion sans décision, sans responsable ni échéance.",
+  "decisions": [],
+  "actions": [
+    {
+      "description": "Relire les notes de la réunion",
+      "owner": null,
+      "due_date": null,
+      "quote": "Il faudra relire les notes de la réunion."
+    }
+  ],
+  "open_points": [],
+  "next_meeting": null
+}
