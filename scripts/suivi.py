@@ -998,6 +998,29 @@ def trier(cle: str, decision: str, note: str) -> tuple[bool, str]:
     return True, ""
 
 
+def trier_tout(decision: str) -> tuple[bool, str]:
+    """Range une même décision sur tous les constats confirmés encore sans décision.
+
+    Les constats déjà triés gardent la décision prise un par un.
+    """
+    if decision not in DECISIONS:
+        return False, "décision inconnue"
+    with _ECRITURE:
+        tri = lire_json(DEPOT.tri, {})
+        cles = [c["cle"] for r in rapports_avec_tri() for c in r.get("constats", [])
+                if c.get("statut") == "confirme" and c["cle"] not in tri and RE_CLE.fullmatch(c["cle"])]
+        quand = maintenant().isoformat(timespec="seconds")
+        for cle in cles:
+            tri[cle] = {"decision": decision, "note": "décision groupée", "t": quand}
+        if cles:
+            ecrire_json(DEPOT.tri, tri)
+    if not cles:
+        return True, "Aucun constat sans décision."
+    noter_action("tri", cle=f"{len(cles)} constats d'un coup", decision=decision)
+    libelle = {"corriger": "à corriger", "accepte": "acceptés", "hors_sujet": "hors sujet"}[decision]
+    return True, f"{len(cles)} constat(s) mis {libelle}."
+
+
 # --------------------------------------------------------------------------
 # Fiche d'un ticket, de la spec au constat
 
@@ -2023,6 +2046,8 @@ table.simple td.n,table.simple th{white-space:nowrap}
 </section>
 <section id="v-revues" hidden>
   <div class="kpis" id="kpis-r"></div>
+  <div class="filtres"><button type="button" class="bouton fort" id="b-tri-tout">Tout mettre à corriger</button>
+    <span class="aide" id="tri-tout-aide">Les constats confirmés sans décision passent « À corriger ». Ceux déjà triés gardent leur décision.</span></div>
   <div id="revues"></div>
 </section>
 <section id="v-tickets" hidden>
@@ -2409,6 +2434,9 @@ async function revues(force){
   if (!force && sig === revuesSig && Date.now() - revuesCharge < 30000) return;
   revuesSig = sig; revuesCharge = Date.now();
   const R = await api("/api/revues").catch(() => []);
+  const sansDecision = R.reduce((a, r) => a + r.constats.filter(c => c.statut === "confirme" && !c.tri).length, 0);
+  const bt = $("#b-tri-tout"); if (bt){ bt.disabled = !sansDecision; bt.dataset.n = sansDecision;
+    bt.textContent = sansDecision ? `Tout mettre à corriger (${sansDecision})` : "Tout mettre à corriger"; }
   if (!R.length){ $("#revues").innerHTML = `<div class="carte vide">Aucune relecture pour l'instant. Les six agents relisent chaque ticket dès que la boucle le commite.</div>`; return; }
   const ordreG = {bloquant:0, majeur:1, mineur:2, remarque:3}, ordreS = {confirme:0, incertain:1, rejete:2};
   poser("#revues", R.slice().reverse().map(r => `<div class="carte revue">
@@ -2649,6 +2677,13 @@ const TRI = [["corriger","À corriger"], ["accepte","Accepté"], ["hors_sujet","
 function triHtml(c){ if (c.statut !== "confirme" || !c.cle) return ""; const d = c.tri && c.tri.decision;
   return `<span class="tri" data-cle="${esc(c.cle)}" role="group" aria-label="Votre décision sur ce constat">${TRI.map(([k,l]) => `<button type="button" aria-pressed="${d === k}" data-d="${k}">${l}</button>`).join("")}</span>`; }
 document.addEventListener("click", async e => {
+  const bt = e.target.closest("#b-tri-tout"); if (bt){ e.preventDefault();
+    const n = +bt.dataset.n || 0; if (!n) return;
+    if (!confirm(`${n} constat(s) confirmé(s) sans décision vont passer « À corriger ». Les constats déjà triés gardent leur décision. Continuer ?`)) return;
+    const r = await poster("/api/tri-tout", {decision: "corriger"});
+    avis(r.ok ? r.message : "Décisions non enregistrées : " + (r.message || "erreur inconnue") + ".", !r.ok);
+    if (r.ok){ for (const k in tampon) if (k.startsWith("fiche:")) delete tampon[k]; revuesSig = ""; rafraichir(); revues(true); }
+    return; }
   const b = e.target.closest(".tri button"); if (b){ e.preventDefault(); e.stopPropagation();
     const dejala = b.getAttribute("aria-pressed") === "true";
     const r = await poster("/api/tri", {cle: b.parentElement.dataset.cle, decision: dejala ? "" : b.dataset.d});
@@ -3018,6 +3053,8 @@ class Gestionnaire(BaseHTTPRequestHandler):
         if chemin == "/api/tri":
             ok, message = trier(str(corps.get("cle") or ""), str(corps.get("decision") or ""),
                                 str(corps.get("note") or ""))
+        elif chemin == "/api/tri-tout":
+            ok, message = trier_tout(str(corps.get("decision") or ""))
         elif chemin == "/api/action":
             action = str(corps.get("action") or "")
             ok, message = piloter(action, corps)
