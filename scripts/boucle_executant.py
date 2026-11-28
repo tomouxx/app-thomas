@@ -392,6 +392,18 @@ def consigne(ticket: dict, tentative: int, echec: str | None) -> str:
         "l'état. Quand `make check` passe, arrête-toi et résume en cinq lignes "
         "ce que tu as fait."
     )
+    deja_la = [c for c in chemins_modifies() if c != "tickets/ETAT.md"]
+    if deja_la and not echec:
+        texte += (
+            "\n\nUne session précédente a déjà travaillé sur ce ticket. Son "
+            "travail est dans l'arbre de travail : "
+            + ", ".join(f"`{c}`" for c in deja_la)
+            + ". Pars de là. Commence par lancer les tests de contrat du ticket "
+            "pour voir ce qui passe déjà, lis les fichiers ci-dessus, puis écris "
+            "directement ce qui manque. Ne relis pas toute la spécification : "
+            "seulement les sections que cite le ticket, et seulement quand un "
+            "test l'exige."
+        )
     if echec:
         texte += (
             f"\n\nC'est la tentative {tentative} sur {MAX_TENTATIVES}. Tes "
