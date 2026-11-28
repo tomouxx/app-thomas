@@ -22,7 +22,7 @@ Tenu par `scripts/boucle_executant.py`. États possibles : à faire, fait, bloqu
 | V2-03 | Transcription audio locale | V2-01 | fait | 1 | c1dbd76 |
 | V2-04 | Agent de compte rendu, extraction structurée | V2-01 | fait | 1 | 1cc86bc |
 | V2-05 | Vérification des extraits | V2-04 | fait | 1 | 667bf77 |
-| V2-06 | Page réunion, rendu et validation du compte rendu | V2-05, V1-07, V2-03 | à faire | 0 | |
+| V2-06 | Page réunion, rendu et validation du compte rendu | V2-05, V1-07, V2-03 | à faire | 0 |  |
 | V2-07 | Actions et décisions | V2-06 | à faire | 0 | |
 | V2-08 | Fiche de préparation | V2-07 | à faire | 0 | |
 | V2-09 | Sources longues | V2-06 | à faire | 0 | |
